@@ -127,11 +127,11 @@ app.use((req, res, next) => {
     "Permissions-Policy":
       "camera=(self), microphone=(self), display-capture=(self)",
   });
-  // HTML and static resources are public entrypoints: opening a link from a
-  // different site legitimately carries Sec-Fetch-Site: cross-site. Apply CSRF
-  // restrictions to API operations, not to the document that hosts the login.
-  const isApi = req.path === "/api" || req.path.startsWith("/api/");
-  if (!isApi) return next();
+  next();
+});
+// Public documents accept external navigation. Mount the guard on the actual
+// API router so path boundaries and case handling match Express routing.
+app.use("/api", (req, res, next) => {
   if (req.headers.origin && req.headers.origin !== origin)
     return res.status(403).json({ error: "请在本站页面操作。" });
   if (req.headers["sec-fetch-site"] === "cross-site")

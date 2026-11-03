@@ -94,7 +94,7 @@ test("external requests to authenticated APIs and login/logout remain forbidden"
     { "Sec-Fetch-Site": "cross-site" },
     { Origin: "https://external.example" },
   ]) {
-    for (const [path, method] of [["/api/models", "GET"], ["/api/session", "GET"], ["/api/login", "POST"], ["/api/logout", "POST"]]) {
+    for (const [path, method] of [["/api/models", "GET"], ["/api/session", "GET"], ["/api/login", "POST"], ["/api/logout", "POST"], ["/API/models", "GET"], ["/Api/login", "POST"]]) {
       const r = await fetch(url + path, {
         method,
         headers: { ...headers, ...securityHeaders },
