@@ -1,3 +1,4 @@
+import { nativeShell } from "./native.js";
 export class LiveSession {
   constructor({ onState, onEvent, onError, onMedia, onLevel }) {
     Object.assign(this, { onState, onEvent, onError, onMedia, onLevel });
@@ -86,7 +87,7 @@ export class LiveSession {
     } catch (e) {
       this.error(
         e.name === "NotAllowedError"
-          ? "麦克风权限未获允许。请在浏览器地址栏授权后重试。"
+          ? nativeShell() ? "麦克风权限未获允许，请到系统设置的 LiveAI 权限中允许麦克风后重试。" : "麦克风权限未获允许。请在浏览器地址栏授权后重试。"
           : e.name === "NotFoundError"
             ? "没有检测到麦克风，请连接设备后重试。"
             : e.message,

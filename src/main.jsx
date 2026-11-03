@@ -36,6 +36,8 @@ import {
   Menu,
 } from "lucide-react";
 import { LiveSession } from "./live";
+import { nativeShell, notifyNativeReady } from "./native";
+import { version as webVersion } from "../package.json";
 import "./style.css";
 
 const API = "/liveai/api";
@@ -67,8 +69,16 @@ const sections = [
   ["history", "对话记录", History],
 ];
 async function api(path, options = {}) {
-  const r = await fetch(API + path, { cache: "no-store", ...options });
-  const data = await r.json();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ["/images", "/vision"].includes(path) ? 165000 : 10000);
+  let r, data;
+  try {
+    r = await fetch(API + path, { cache: "no-store", ...options, signal: options.signal || controller.signal });
+    data = await r.json();
+  } catch (error) {
+    if (error.name === "AbortError") throw new Error("网络请求超时，请检查连接后重试。");
+    throw error;
+  } finally { clearTimeout(timer); }
   if (!r.ok)
     throw Object.assign(new Error(data.error || "请求失败，请稍后重试。"), {
       status: r.status,
@@ -98,6 +108,7 @@ function save(key, value) {
   }
 }
 function download(text, name, type = "text/plain") {
+  if (nativeShell()?.saveText) { nativeShell().saveText(text, name); return; }
   const url = URL.createObjectURL(new Blob([text], { type }));
   const a = document.createElement("a");
   a.href = url;
@@ -173,6 +184,7 @@ function App() {
       });
     return () => engine.current?.stop();
   }, []);
+  useEffect(() => { if (auth !== null) notifyNativeReady(); }, [auth]);
   useEffect(() => {
     if (!auth) return;
     let active = true;
@@ -219,7 +231,8 @@ function App() {
       engine.current?.stop();
     };
     window.addEventListener("pagehide", handler);
-    return () => window.removeEventListener("pagehide", handler);
+    window.addEventListener("liveai:native-pause", handler);
+    return () => { window.removeEventListener("pagehide", handler); window.removeEventListener("liveai:native-pause", handler); };
   }, []);
   async function login(e) {
     e.preventDefault();
@@ -404,6 +417,7 @@ function App() {
             返回规划 Lab
             <ArrowUpRight size={15} />
           </a>
+          {!nativeShell() && <a href="/liveai/downloads/liveai-latest.apk">下载 Android APP<Download size={15}/></a>}
           <div className="sidebar-footer">
             <span className="tiny-logo">L</span>
             <div>
@@ -737,7 +751,7 @@ function App() {
                                 {media.camera ? "关闭摄像头" : "摄像头"}
                               </span>
                             </button>
-                            <button
+                            {(!nativeShell() || navigator.mediaDevices?.getDisplayMedia) && <button
                               className={`control screen-control ${media.screen ? "enabled" : ""}`}
                               disabled={
                                 phase === "connecting" || !!pendingMedia
@@ -752,7 +766,7 @@ function App() {
                               <span>
                                 {media.screen ? "停止共享" : "共享屏幕"}
                               </span>
-                            </button>
+                            </button>}
                             <button
                               className="control hangup"
                               onClick={() => engine.current?.stop()}
@@ -779,6 +793,7 @@ function App() {
                           ? "会话已连接 · 结束对话将释放所有设备"
                           : "仅在你开始对话后，才使用麦克风和画面"}
                       </div>
+                      {nativeShell() && !navigator.mediaDevices?.getDisplayMedia && <p className="native-capability">APP 支持语音和摄像头；屏幕共享请在电脑浏览器使用。</p>}
                     </section>
                     <section className="transcript-card">
                       <div className="transcript-head">
@@ -969,7 +984,7 @@ function App() {
           <footer className="workspace-footer">
             <span>
               <Activity size={13} />
-              LiveAI · Powered by MOSS
+              LiveAI · 网页 {webVersion}{nativeShell() ? " · 关闭后重开获取页面更新" : " · Powered by MOSS"}
             </span>
             <span>
               限时免费政策以平台为准 ·{" "}

@@ -1,0 +1,36 @@
+{
+  "shell": {
+    "packageName": "cn.guihualab.liveai",
+    "versionCode": 2,
+    "versionName": "1.0.1",
+    "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a"
+  },
+  "webVersion": "1.1.0",
+  "nativeTests": [
+    {
+      "suite": "cn.guihualab.liveai.WebUpdatesTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "suite": "cn.guihualab.liveai.NavigationPolicyTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "suite": "cn.guihualab.liveai.UpdateBundleTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "lintRelease": "passed; warnings retained",
+  "apkSha256": "a182f5d3e2fedfd855d06ca8984395a85e8ed43dd183b8b4b5b5ea9b91f6769e",
+  "apkBytes": 123880,
+  "otaSha256": "72db8ca3d8cfd517604afaee629d3fa4ba665a226deccb23e5ab7da528e8c714",
+  "apkAndOtaAssetsMatch": true,
+  "abiLibraries": [],
+  "physicalDevices": []
+}

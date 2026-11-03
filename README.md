@@ -46,7 +46,9 @@ Paid capability handlers are not implemented in this release. Changing `ENABLE_P
 
 `npm test` covers playback acknowledgement ordering, interruption accounting, paid/unknown model rejection, API access, cookie scoping, origin restrictions and unauthenticated WebSocket rejection. `npm run build` builds the responsive frontend. Real API smoke tests and browser checks are recorded in `docs/verification.md`.
 
-This is a web application. No APK is required for use in a mobile browser; screen sharing depends on the browser and is not generally available on Android. Camera/microphone require HTTPS and user permission. Real nubia M153 hardware verification has not been performed.
+An independent signed Android shell is available: [direct IP APK download](http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk), [HTTPS APK download](https://guihualab.cn/liveai/downloads/liveai-latest.apk). It follows the existing Dayweave native WebView + full-bundle OTA design and keeps the `https://guihualab.cn` origin. See [Android installation, update and build instructions](docs/android.md).
+
+The APK supports microphone and camera permission requests, system image selection and text export. Android WebView does not provide this application's browser display-capture API; use the desktop website for screen sharing. Camera/microphone require user permission. Real nubia M153 hardware verification has not been performed.
 
 ## License
 

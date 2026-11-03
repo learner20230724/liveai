@@ -5,3 +5,13 @@ dist/
 *.pem
 *.log
 test-results/
+artifacts/
+android/.gradle/
+android/local.properties
+android/**/build/
+android/app/src/main/assets/web/
+*.jks
+*.keystore
+*.p12
+__pycache__/
+*.pyc

@@ -1,6 +1,6 @@
 {
   "name": "liveai",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,11 @@
     "build": "vite build",
     "start": "node server/index.mjs",
     "test": "node --test tests/*.test.mjs",
-    "deploy": "python3 scripts/deploy.py"
+    "deploy": "python3 scripts/deploy.py",
+    "deploy:web": "python3 scripts/deploy.py",
+    "build:apk": "bash scripts/build-apk.sh",
+    "test:android": "./android/gradlew -p android :app:testDebugUnitTest --offline --console=plain",
+    "publish:apk": "python3 scripts/publish-apk.py"
   },
   "dependencies": {
     "express": "^5.1.0",

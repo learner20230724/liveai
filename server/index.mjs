@@ -16,6 +16,7 @@ import { models, selectModel, verifiedAt } from "./catalog.mjs";
 import { authRequest } from "./auth-client.mjs";
 
 const here = resolve(fileURLToPath(new URL("..", import.meta.url)));
+const appVersion = JSON.parse(readFileSync(join(here, "package.json"), "utf8")).version;
 const key = readFileSync(
   process.env.MOSS_KEY_FILE || "/etc/liveai/moss.key",
   "utf8",
@@ -141,7 +142,7 @@ app.use("/api", (req, res, next) => {
 });
 app.use(express.json({ limit: "64kb" }));
 app.get("/api/health", (_, res) =>
-  res.json({ ok: true, service: "LiveAI", version: "1.0.0" }),
+  res.json({ ok: true, service: "LiveAI", version: appVersion }),
 );
 app.get("/api/session", async (req, res, next) => {
   try {
@@ -307,6 +308,8 @@ app.post("/api/paid/:kind", (req, res) =>
     }),
 );
 app.use("/api", (_, res) => res.status(404).json({ error: "接口不存在。" }));
+app.use("/app-updates", express.static(join(here, "web-updates"), { index: false, dotfiles: "deny", setHeaders: res => res.setHeader("Cache-Control", "no-store") }));
+app.use("/downloads", express.static(process.env.LIVEAI_APK_DIRECTORY || "/srv/liveai/apk", { index: false, dotfiles: "deny", setHeaders: (res, path) => { res.setHeader("Cache-Control", "no-store"); if(path.endsWith(".apk")) { res.setHeader("Content-Type", "application/vnd.android.package-archive"); res.setHeader("Content-Disposition", "attachment; filename=\"liveai-android.apk\""); } } }));
 app.use(
   express.static(join(here, "dist"), { index: "index.html", dotfiles: "deny" }),
 );
