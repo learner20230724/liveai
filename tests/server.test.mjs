@@ -6,10 +6,10 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WebSocket } from "ws";
-let auth, child, temp, url, keyPath;
+let auth, child, temp, url, keyPath, authPort;
 const token = "a".repeat(64);
-async function listen(server) {
-  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+async function listen(server, port = 0) {
+  await new Promise((r) => server.listen(port, "127.0.0.1", r));
   return server.address().port;
 }
 before(async () => {
@@ -31,7 +31,9 @@ before(async () => {
         }),
       );
   });
-  const authPort = await listen(auth);
+  // Use a real fetch-blocked port so this integration covers production's
+  // AUTH_BASE on 4190 instead of hiding the transport bug on a random port.
+  authPort = await listen(auth, 6000);
   const reserve = http.createServer();
   const port = await listen(reserve);
   await new Promise((r) => reserve.close(r));
@@ -67,6 +69,12 @@ const headers = {
   Cookie: `liveai_session=${token}`,
   "Content-Type": "application/json",
 };
+test("authentication works on a port blocked by browser-compatible fetch", async () => {
+  await assert.rejects(fetch(`http://127.0.0.1:${authPort}/api/share/session`));
+  const r = await fetch(url + "/api/session", { headers });
+  assert.equal(r.status, 200);
+  assert.equal((await r.json()).authenticated, true);
+});
 test("external navigation can load public documents and static resources", async () => {
   // CI runs before the frontend build, so compare with the route's normal
   // response (200 when built, 404 when absent), rather than changing its assets.

@@ -13,6 +13,7 @@ import { resolve, join } from "node:path";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { models, selectModel, verifiedAt } from "./catalog.mjs";
+import { authRequest } from "./auth-client.mjs";
 
 const here = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const key = readFileSync(
@@ -58,11 +59,11 @@ const cookie = (req) =>
 const authCookie = (req) => `guihua_share=${cookie(req) || ""}`;
 async function authenticated(req) {
   if (!/^[a-f0-9]{64}$/.test(cookie(req) || "")) return false;
-  const r = await fetch(`${authBase}/api/share/session`, {
+  const r = await authRequest(authBase, "/api/share/session", {
     headers: { Cookie: authCookie(req) },
-    signal: AbortSignal.timeout(4000),
+    timeoutMs: 4000,
   });
-  return r.ok && (await r.json()).authenticated === true;
+  return r.status === 200 && r.data.authenticated === true;
 }
 function fail(status, message, code) {
   return Object.assign(new Error(message), { status, code });
@@ -158,7 +159,7 @@ for (const action of ["login", "logout"])
           req.body.password.length > 128)
       )
         throw fail(400, "请输入访问密码。");
-      const r = await fetch(`${authBase}/api/share/${action}`, {
+      const r = await authRequest(authBase, `/api/share/${action}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -168,9 +169,9 @@ for (const action of ["login", "logout"])
         body: JSON.stringify(
           action === "login" ? { password: req.body.password } : {},
         ),
-        signal: AbortSignal.timeout(6000),
+        timeoutMs: 6000,
       });
-      const c = r.headers.get("set-cookie");
+      const c = r.setCookie;
       if (c)
         res.setHeader(
           "Set-Cookie",
@@ -178,7 +179,7 @@ for (const action of ["login", "logout"])
             .replace(/^guihua_share=/, "liveai_session=")
             .replace("Path=/api/share", "Path=/liveai/"),
         );
-      res.status(r.status).json(await r.json());
+      res.status(r.status).json(r.data);
     } catch (e) {
       next(e);
     }
