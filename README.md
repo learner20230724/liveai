@@ -4,7 +4,7 @@ A self-hosted MOSS workspace, built for **moss-live-1.0** realtime audio/video c
 
 Live demo: https://guihualab.cn/liveai/ (requires the owner's existing Guihua Lab shared password).
 
-Android 2.0：手机音视频直连 MOSS，支持前台服务维持锁屏语音、耳机通话路由、本机加密记住密码，以及简洁的通话首页。首次配置和 OTA 更新使用规划 Lab，通话媒体不经过它。摄像头离开前台即暂停，语音继续；系统强制停止或断网仍会中断，不能绕过手机系统限制。
+Android 2.0：手机音视频直连 MOSS，支持前台服务维持锁屏语音、耳机通话路由、本机加密记住密码，以及简洁的通话首页。APP 内通过底部「对话／图像／视觉／模型／记录」切换全部工具；日常对话、口语陪练、看见与理解和自定义提示词在设置中切换。工具页面保留输入、上传和图像任务，切换页面不结束原生通话。首次配置和 OTA 更新使用规划 Lab，通话媒体不经过它。摄像头离开前台即暂停，语音继续；系统强制停止或断网仍会中断，不能绕过手机系统限制。
 
 网页体验：使用规划 Lab 共享密码解锁，点击「开始实时对话」，授权麦克风后直接说话。摄像头、屏幕共享在通话中按需开启；点击「结束对话」释放设备。首页接入的是你要体验的 **MOSS Live** 模型。免费与付费独立展示，当前付费调用全部关闭。
 
@@ -47,6 +47,8 @@ Use a Caddy `handle_path /liveai/*` reverse proxy to loopback port 4260. Forward
 Paid capability handlers are not implemented in this release. Changing `ENABLE_PAID_MODELS` does not enable paid endpoints; those handlers continue to return `PAID_DISABLED`. Explicit implementation and authorization are required before paid use.
 
 ## Checks
+
+Mobile functionality regression (after `npm run build`): `node scripts/check-mobile-workspace.mjs`, with Playwright installed in the environment or `PLAYWRIGHT_MODULE=/absolute/path/to/playwright/index.mjs`. This uses browser-only API/native-bridge fixtures, verifies all five tabs, in-flight image/result preservation, uploaded-image/draft preservation, remembered tool login, paid locking, presets, history export, ongoing native call state, and desktop tools. It makes no actual provider or hardware calls. Screenshots and sanitized results are written to ignored `artifacts/`.
 
 `npm test` covers playback acknowledgement ordering, interruption accounting, paid/unknown model rejection, API access, cookie scoping, origin restrictions and unauthenticated WebSocket rejection. `npm run build` builds the responsive frontend. Real API smoke tests and browser checks are recorded in `docs/verification.md`.
 

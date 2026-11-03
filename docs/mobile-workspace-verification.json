@@ -1,0 +1,50 @@
+{
+  "browserRegression": {
+    "nativeBridgeSimulated": true,
+    "providerCallsMocked": true,
+    "physicalDevice": false,
+    "allFiveTabs": true,
+    "imageJobAndResultRetainedAcrossTabs": true,
+    "visionUploadAndDraftRetained": true,
+    "paidModelsRemainLocked": true,
+    "rememberedToolSessionRecovery": true,
+    "nativeCallRetainedAcrossTabsAndReload": true,
+    "noRelayCallStarted": true,
+    "historyExport": true,
+    "conversationPresets": true,
+    "desktopTools": true,
+    "horizontalOverflow": false,
+    "errors": []
+  },
+  "publicIntegration": {
+    "webVersion": "2.1.0",
+    "shellVersion": "2.0.0",
+    "nativeBridgeSimulated": true,
+    "physicalDevice": false,
+    "actualProductionAuth": true,
+    "actualProductionCatalog": true,
+    "freePaidSeparation": true,
+    "visionEntryAndUpstreamNotice": true,
+    "actualMossImageGeneration": true,
+    "imageResultRetainedAcrossTabs": true,
+    "syntheticCallRetainedAcrossTabs": true,
+    "noRelayCallStarted": true,
+    "horizontalOverflow": false,
+    "errors": []
+  },
+  "ota": {
+    "manifest": {
+      "version": "2.1.0",
+      "channel": "liveai-stable",
+      "sha256": "a9b10b7d17cfa9e6fbbc8bbebce027be6ebb24c9e3194a55235518cac319cc3f",
+      "size": 103671,
+      "minShellVersion": 1,
+      "publishedAt": "2026-11-03T12:08:42.658607+00:00"
+    },
+    "matchesBuiltAssets": true,
+    "compatibleWithShellCode3": true
+  },
+  "nodeTests": 14,
+  "nativeShellChanged": false,
+  "newApkRequired": false
+}
