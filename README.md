@@ -36,7 +36,7 @@ Run `npm run build && npm start`. The server binds to `127.0.0.1:4260`. Publish 
 
 The deployment template is `deploy/liveai.service`. Provision `/etc/liveai/moss.key` readable only by the service account, and `/var/lib/liveai` writable by it. Copy the systemd unit to `/etc/systemd/system/liveai.service`, reload systemd and enable it. Existing Guihua Lab authentication must remain running.
 
-One-command updates: `npm run deploy` (requires permission to write `/var/www/liveai` and restart this unit). It runs tests, builds, creates a new immutable source/static release, atomically switches `current`, checks health and rolls back on failure. Releases reuse the installed dependency directory; run `npm ci --include=dev` when dependencies change before deployment.
+One-command updates: `npm run deploy` (requires permission to write `/var/www/liveai` and restart this unit). It runs tests, builds, creates a new immutable source/static release, retains the previous five releases' hashed assets for in-flight page loads, atomically switches `current`, checks health and rolls back on failure. Releases reuse the installed dependency directory; run `npm ci --include=dev` when dependencies change before deployment.
 
 Use a Caddy `handle_path /liveai/*` reverse proxy to loopback port 4260. Forward `X-Real-IP {client_ip}` with trusted proxy configuration. Keep all other project routes and access controls intact. The login cookie is HttpOnly, Secure, SameSite=Strict and scoped to `/liveai/`.
 

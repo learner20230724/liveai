@@ -28,6 +28,8 @@ The QA authentication adapter ran **only on loopback in an isolated process**, n
 
 Desktop 1440×1050 and mobile 390×844 screenshots inspected. No mobile horizontal overflow; sidebar fully hidden when closed, opens from the menu and closes on navigation. Browser zoom remains enabled and safe-area padding is present. Screen-share controls use the browser's display-capture API, which depends on browser support; no real desktop screen share or physical phone was available.
 
+The public Guihua Lab card was clicked in Chromium and opened the protected LiveAI login page. The navigation screenshot decoded successfully and the navigation also passed the 390 px overflow check. During release checks, an older hashed JS URL initially returned 404; deployment now retains assets from the previous five releases. The same old URL returned 200 after the new deployment, while anonymous API access remained rejected.
+
 ## Known upstream limitations
 
 `GET /v1/models` authenticates successfully but omits several officially documented free model IDs. Live and Image SFT work despite that omission. MOSS VL currently fails with `model or version not found`; its entry explicitly reports upstream unavailability. VL Realtime is listed only and is not an implemented alternate protocol in this release. Paid capabilities are catalog entries only and all paid handlers are disabled; no paid inference requests were made.

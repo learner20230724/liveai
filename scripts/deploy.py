@@ -12,6 +12,24 @@ for name in ['dist','server']: shutil.copytree(root/name,release/name)
 for name in ['package.json','package-lock.json']:shutil.copy2(root/name,release/name)
 (release/'node_modules').symlink_to(root/'node_modules',target_is_directory=True)
 current=base/'current'; old=current.resolve() if current.exists() else None
+# A tab may receive HTML immediately before the release switch and request its
+# hashed JS/CSS immediately after. Keep assets from the current and four other
+# recent releases so those in-flight loads still work. Manifests list only each
+# release's own build output, preventing retained files from accumulating forever.
+asset_dir=release/'dist'/'assets'
+own_assets=[p.name for p in asset_dir.iterdir() if p.is_file()]
+(release/'asset-manifest.json').write_text(json.dumps(own_assets))
+previous=sorted((p for p in (base/'releases').iterdir() if p.is_dir() and p!=release and p!=old),reverse=True)[:4]
+if old:previous.insert(0,old)
+for previous_release in previous:
+    source=previous_release/'dist'/'assets'
+    if not source.is_dir():continue
+    manifest=previous_release/'asset-manifest.json'
+    names=json.loads(manifest.read_text()) if manifest.exists() else [p.name for p in source.iterdir() if p.is_file()]
+    for name in names:
+        if pathlib.Path(name).name!=name:continue
+        item=source/name;destination=asset_dir/name
+        if item.is_file() and not destination.exists():shutil.copy2(item,destination)
 def switch(path):
     target=base/'next'
     if target.is_symlink(): target.unlink()
