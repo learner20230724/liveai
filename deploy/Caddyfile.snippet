@@ -1,0 +1,10 @@
+# Merge only these handlers into your existing HTTPS site block.
+# The explicit * avoids treating /liveai/ as a path matcher for redir.
+handle /liveai {
+    redir * /liveai/ 308
+}
+handle_path /liveai/* {
+    reverse_proxy 127.0.0.1:4260 {
+        header_up X-Real-IP {client_ip}
+    }
+}

@@ -67,6 +67,47 @@ const headers = {
   Cookie: `liveai_session=${token}`,
   "Content-Type": "application/json",
 };
+test("external navigation can load public documents and static resources", async () => {
+  // CI runs before the frontend build, so compare with the route's normal
+  // response (200 when built, 404 when absent), rather than changing its assets.
+  for (const path of ["/", "/index.html", "/pcm-capture.js"]) {
+    const baseline = await fetch(url + path);
+    const body = await baseline.text();
+    assert.ok([200, 404].includes(baseline.status));
+    for (const method of ["GET", "HEAD"]) {
+      const r = await fetch(url + path, {
+        method,
+        headers: {
+          "Sec-Fetch-Site": "cross-site",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Dest": "document",
+          Origin: "https://external.example",
+        },
+      });
+      assert.equal(r.status, baseline.status);
+      if (method === "GET") assert.equal(await r.text(), body);
+    }
+  }
+});
+test("external requests to authenticated APIs and login/logout remain forbidden", async () => {
+  for (const securityHeaders of [
+    { "Sec-Fetch-Site": "cross-site" },
+    { Origin: "https://external.example" },
+  ]) {
+    for (const [path, method] of [["/api/models", "GET"], ["/api/session", "GET"], ["/api/login", "POST"], ["/api/logout", "POST"]]) {
+      const r = await fetch(url + path, {
+        method,
+        headers: { ...headers, ...securityHeaders },
+        ...(method === "POST" ? { body: "{}" } : {}),
+      });
+      assert.equal(r.status, 403);
+    }
+  }
+  const sameOrigin = await fetch(url + "/api/models", {
+    headers: { ...headers, Origin: "https://guihualab.cn", "Sec-Fetch-Site": "same-origin" },
+  });
+  assert.equal(sameOrigin.status, 200);
+});
 test("unauthenticated API, paid route, and foreign origins are denied", async () => {
   assert.equal((await fetch(url + "/api/models")).status, 401);
   assert.equal(

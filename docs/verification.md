@@ -35,3 +35,11 @@ The public Guihua Lab card was clicked in Chromium and opened the protected Live
 `GET /v1/models` authenticates successfully but omits several officially documented free model IDs. Live and Image SFT work despite that omission. MOSS VL currently fails with `model or version not found`; its entry explicitly reports upstream unavailability. VL Realtime is listed only and is not an implemented alternate protocol in this release. Paid capabilities are catalog entries only and all paid handlers are disabled; no paid inference requests were made.
 
 Machine-readable sanitized results: [browser-verification.json](browser-verification.json). Screenshots contain the actual application with empty or synthetic content, never user conversations.
+
+## External link entry fix — 2026-11-03
+
+The owner reported `{"error":"不允许跨站请求。"}` when opening the published URL. Before the fix, a normal homepage GET returned 200, but the same homepage GET carrying `Sec-Fetch-Site: cross-site` returned 403 with that exact error. The source of the owner's request was not logged; external navigation reproduces the reported response. This was caused by applying the API Origin/Fetch Metadata guard globally, including the public login document. Earlier browser verification used direct URL and same-origin navigation, so it missed external link entry.
+
+The guard now applies only to `/api` and `/api/*`. Public HTML and static assets can be loaded from external links; API login/logout/session/model checks and the separate authenticated WebSocket Origin guard remain enforced. The regression suite now has 11 passing tests, including external document GET/HEAD, foreign-Origin requests, authenticated cross-site API rejection, and same-origin API acceptance.
+
+The no-slash `/liveai` URL also returned an empty 200 because the Caddy redirect target was parsed as a path matcher. Its handler now uses `redir * /liveai/ 308`. The existing Caddy configuration was read, backed up, incrementally changed and validated; other site handlers and authentication were retained. The matching deployment example is [Caddyfile.snippet](../deploy/Caddyfile.snippet).

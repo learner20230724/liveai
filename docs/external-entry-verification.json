@@ -1,0 +1,20 @@
+[
+  {
+    "variant": "direct",
+    "status": 200,
+    "fetchSite": "cross-site",
+    "mode": "navigate"
+  },
+  {
+    "variant": "slash",
+    "status": 200,
+    "fetchSite": "cross-site",
+    "mode": "navigate"
+  },
+  {
+    "variant": "redirect",
+    "status": 200,
+    "fetchSite": "cross-site",
+    "mode": "navigate"
+  }
+]
