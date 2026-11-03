@@ -1,0 +1,31 @@
+[Unit]
+Description=LiveAI private MOSS realtime workspace
+After=network-online.target guihua-share.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/apps/liveai
+ExecStart=/home/ubuntu/.local/node/bin/node /var/www/liveai/current/server/index.mjs
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=4260
+Environment=MOSS_KEY_FILE=/etc/liveai/moss.key
+Environment=PUBLIC_ORIGIN=https://guihualab.cn
+Environment=AUTH_BASE=http://127.0.0.1:4190
+Environment=LIVEAI_STATE_DIR=/var/lib/liveai
+Environment=ENABLE_PAID_MODELS=false
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/liveai
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

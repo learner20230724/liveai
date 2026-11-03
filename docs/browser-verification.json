@@ -1,0 +1,35 @@
+{
+  "source": "Isolated loopback QA auth adapter; actual MOSS API inference; synthetic eSpeak microphone and Chromium camera",
+  "browserErrors": [],
+  "audioChunksReceived": 60,
+  "audioChunksAcknowledged": 60,
+  "completedTurns": 1,
+  "tracksAfterEnd": [
+    {
+      "kind": "audio",
+      "state": "ended"
+    },
+    {
+      "kind": "video",
+      "state": "ended"
+    }
+  ],
+  "mobileOverflow": false,
+  "secondRun": {
+    "errors": [],
+    "cameraFrames": 3,
+    "audioFrames": 139,
+    "tracks": [
+      {
+        "kind": "audio",
+        "state": "ended"
+      },
+      {
+        "kind": "video",
+        "state": "ended"
+      }
+    ],
+    "ongoingCallIndicator": true,
+    "mobileSidebarHidden": true
+  }
+}
