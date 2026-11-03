@@ -10,7 +10,7 @@ import {
   existsSync,
 } from "node:fs";
 import { resolve, join } from "node:path";
-import { createHash } from "node:crypto";
+import { createHash, createPublicKey, publicEncrypt, constants as cryptoConstants } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { models, selectModel, verifiedAt } from "./catalog.mjs";
 import { authRequest } from "./auth-client.mjs";
@@ -208,6 +208,19 @@ app.get("/api/models", (_, res) =>
   }),
 );
 app.get("/api/stats", (_, res) => res.json(stats));
+// Explicitly authorized native direct mode. Only an authenticated owner can
+// provision a device. The API key is encrypted to an ephemeral native RSA key;
+// neither the webpage nor the APK/OTA bundle contains or receives plaintext.
+app.post("/api/mobile/bootstrap", (req, res) => {
+  try {
+    const pem = req.body?.publicKey;
+    if (typeof pem !== "string" || pem.length > 3000) throw fail(400, "设备公钥无效。");
+    const publicKey = createPublicKey(pem);
+    if (publicKey.asymmetricKeyType !== "rsa" || publicKey.asymmetricKeyDetails.modulusLength < 2048 || publicKey.asymmetricKeyDetails.modulusLength > 4096) throw fail(400, "设备公钥不受支持。");
+    const encryptedKey = publicEncrypt({ key: publicKey, padding: cryptoConstants.RSA_PKCS1_OAEP_PADDING, oaepHash: "sha256" }, Buffer.from(key)).toString("base64");
+    res.json({ encryptedKey, endpoint: "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0", model: "moss-live-1.0" });
+  } catch { res.status(400).json({ error: "设备配置请求无效，请重试。" }); }
+});
 const active = new Map();
 function acquire(req, res, next) {
   const id = sessionId(req);

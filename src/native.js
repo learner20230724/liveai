@@ -5,3 +5,4 @@ export function nativeShell() {
 export function notifyNativeReady() {
   try { nativeShell()?.ready(); } catch { /* Browser operation remains independent of the shell. */ }
 }
+export function nativeDirect() { try { return (nativeShell()?.directVersion?.() || 0) >= 1; } catch { return false; } }

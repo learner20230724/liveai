@@ -6,6 +6,7 @@ import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WebSocket } from "ws";
+import {generateKeyPairSync,privateDecrypt,constants} from 'node:crypto';
 let auth, child, temp, url, keyPath, authPort;
 const token = "a".repeat(64);
 async function listen(server, port = 0) {
@@ -155,6 +156,15 @@ test("catalog reveals no API secret; paid models remain locked", async () => {
   const data = JSON.parse(body);
   assert.equal(data.paidEnabled, false);
   assert.equal(data.models.find((m) => m.id === "moss-live-1.0").tier, "free");
+});
+test('native owner provisioning encrypts the key to the device and requires authentication',async()=>{
+  assert.equal((await fetch(url+'/api/mobile/bootstrap',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,401);
+  const {publicKey,privateKey}=generateKeyPairSync('rsa',{modulusLength:2048});
+  const body=JSON.stringify({publicKey:publicKey.export({type:'spki',format:'pem'})});
+  const r=await fetch(url+'/api/mobile/bootstrap',{method:'POST',headers,body});assert.equal(r.status,200);const data=await r.json();
+  assert.equal(privateDecrypt({key:privateKey,padding:constants.RSA_PKCS1_OAEP_PADDING,oaepHash:'sha256'},Buffer.from(data.encryptedKey,'base64')).toString(),'test-only-secret-key');
+  assert.ok(!JSON.stringify(data).includes('test-only-secret-key'));assert.equal(data.endpoint,'wss://api.mosi.cn/v1/realtime?model=moss-live-1.0');
+  assert.equal((await fetch(url+'/api/mobile/bootstrap',{method:'POST',headers:{...headers,Origin:'https://foreign.example'},body})).status,403);
 });
 test("invalid sizes/models fail locally without issuing upstream requests", async () => {
   for (const body of [

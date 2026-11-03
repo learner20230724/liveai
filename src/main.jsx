@@ -36,7 +36,8 @@ import {
   Menu,
 } from "lucide-react";
 import { LiveSession } from "./live";
-import { nativeShell, notifyNativeReady } from "./native";
+import { nativeShell, notifyNativeReady, nativeDirect } from "./native";
+import MobileApp from "./MobileApp";
 import { version as webVersion } from "../package.json";
 import "./style.css";
 
@@ -1472,4 +1473,4 @@ function Models({ catalog, stats, onRefresh }) {
     </>
   );
 }
-createRoot(document.getElementById("root")).render(<App />);
+createRoot(document.getElementById("root")).render(nativeDirect() ? <MobileApp /> : <App />);

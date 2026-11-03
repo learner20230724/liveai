@@ -1,10 +1,12 @@
 # LiveAI
 
-A self-hosted MOSS workspace, built for **moss-live-1.0** realtime audio/video conversations. React + Web Audio + an authenticated Node WebSocket gateway. No GPU required; inference runs on the MOSS API.
+A self-hosted MOSS workspace, built for **moss-live-1.0** realtime audio/video conversations. React with an Android native direct client, and Web Audio + an authenticated Node WebSocket gateway for desktop browsers. No GPU required; inference runs on the MOSS API.
 
 Live demo: https://guihualab.cn/liveai/ (requires the owner's existing Guihua Lab shared password).
 
-体验：使用规划 Lab 共享密码解锁，点击「开始实时对话」，授权麦克风后直接说话。摄像头、屏幕共享在通话中按需开启；点击「结束对话」释放设备。首页接入的是你要体验的 **MOSS Live** 模型。免费与付费独立展示，当前付费调用全部关闭。
+Android 2.0：手机音视频直连 MOSS，支持前台服务维持锁屏语音、耳机通话路由、本机加密记住密码，以及简洁的通话首页。首次配置和 OTA 更新使用规划 Lab，通话媒体不经过它。摄像头离开前台即暂停，语音继续；系统强制停止或断网仍会中断，不能绕过手机系统限制。
+
+网页体验：使用规划 Lab 共享密码解锁，点击「开始实时对话」，授权麦克风后直接说话。摄像头、屏幕共享在通话中按需开启；点击「结束对话」释放设备。首页接入的是你要体验的 **MOSS Live** 模型。免费与付费独立展示，当前付费调用全部关闭。
 
 ![LiveAI workspace](docs/workspace.png)
 
@@ -16,7 +18,9 @@ Live demo: https://guihualab.cn/liveai/ (requires the owner's existing Guihua La
 - MOSS Image SFT/Base image generation; successful images can be opened and saved. Upstream URLs expire.
 - Separate free and paid catalogs. Paid operations are disabled server-side and have no automatic fallback. Official free offers are **limited time**, not a permanent guarantee.
 - Transcripts stored only in the current browser (last 60 conversations), with export and deletion. Microphone and camera media are sent to MOSS only during active sessions; this server does not archive raw media or conversation text.
-- Persistent local service usage counts, including maintenance tests; these are not account balance or billing records.
+- Persistent server usage counts for web relay calls, including maintenance tests; native direct calls bypass these counters. APP connection information shows session traffic locally. Neither figure is account balance or provider billing records.
+- Android microphone foreground service, partial wake lock, notification mute/end controls, actual input-device display, communication-mode Bluetooth/USB/wired routing. Native camera sends compressed ≤480 px JPEG snapshots at up to 1 fps, capped at 32 KB; congestion drops images before audio.
+- Initial authenticated native configuration uses RSA-OAEP SHA-256; runtime secrets, remembered password and new native transcripts are encrypted with Android Keystore AES-GCM. No secrets are embedded in public APK/OTA assets. Legacy local browser history remains visible. No cloud conversation sync.
 
 ## Current upstream state (2026-11-03)
 
@@ -48,7 +52,7 @@ Paid capability handlers are not implemented in this release. Changing `ENABLE_P
 
 An independent signed Android shell is available: [direct IP APK download](http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk), [HTTPS APK download](https://guihualab.cn/liveai/downloads/liveai-latest.apk). It follows the existing Dayweave native WebView + full-bundle OTA design and keeps the `https://guihualab.cn` origin. See [Android installation, update and build instructions](docs/android.md).
 
-The APK supports microphone and camera permission requests, system image selection and text export. Android WebView does not provide this application's browser display-capture API; use the desktop website for screen sharing. Camera/microphone require user permission. Real nubia M153 hardware verification has not been performed.
+APK 2.0.0 / code 3 preserves the original package/signature and can cover-install without uninstalling. Allow microphone, Nearby devices/Bluetooth and notification permissions; use Settings → lock-screen calling to permit background battery use. The APK supports native microphone/camera capture and text export. Web tools retain image generation and upload. Android WebView does not provide this application's browser display-capture API; use the desktop website for screen sharing. Camera/microphone require user permission. Real nubia M153 hardware verification has not been performed.
 
 ## License
 

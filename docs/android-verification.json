@@ -1,36 +1,136 @@
 {
   "shell": {
     "packageName": "cn.guihualab.liveai",
-    "versionCode": 2,
-    "versionName": "1.0.1",
+    "versionCode": 3,
+    "versionName": "2.0.0",
     "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a"
   },
-  "webVersion": "1.1.0",
+  "webVersion": "2.0.0",
   "nativeTests": [
     {
-      "suite": "cn.guihualab.liveai.WebUpdatesTest",
+      "name": "cn.guihualab.liveai.WebUpdatesTest",
       "tests": 2,
       "failures": 0,
       "errors": 0
     },
     {
-      "suite": "cn.guihualab.liveai.NavigationPolicyTest",
+      "name": "cn.guihualab.liveai.BackgroundCallTest",
       "tests": 2,
       "failures": 0,
       "errors": 0
     },
     {
-      "suite": "cn.guihualab.liveai.UpdateBundleTest",
+      "name": "cn.guihualab.liveai.PrivateStateTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "cn.guihualab.liveai.NavigationPolicyTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "cn.guihualab.liveai.UpdateBundleTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "cn.guihualab.liveai.PlaybackLedgerTest",
       "tests": 3,
       "failures": 0,
       "errors": 0
     }
   ],
   "lintRelease": "passed; warnings retained",
-  "apkSha256": "a182f5d3e2fedfd855d06ca8984395a85e8ed43dd183b8b4b5b5ea9b91f6769e",
-  "apkBytes": 123880,
-  "otaSha256": "72db8ca3d8cfd517604afaee629d3fa4ba665a226deccb23e5ab7da528e8c714",
+  "apkSha256": "359b40379d0bb31cd6d7a07b6390600d89acc99abd76ffa74cc101d4c3e135d8",
+  "apkBytes": 1173342,
+  "otaSha256": "ea6a7f34905f3b11668829aa37e8551c49b820c186397267b687e12466695f2a",
+  "otaBytes": 101458,
   "apkAndOtaAssetsMatch": true,
   "abiLibraries": [],
-  "physicalDevices": []
+  "secretScan": "passed: no configured credential, owner password, signing materials or .so files",
+  "physicalDevices": [],
+  "productionProvisioning": {
+    "productionLogin": true,
+    "encryptedProvision": true,
+    "decryptedMatchesConfiguredKey": true,
+    "noPlaintextCredentialInResponse": true,
+    "anonymousStatus": 401,
+    "foreignOriginStatus": 403,
+    "externalEntryStatus": 200,
+    "serviceVersion": "2.0.0"
+  },
+  "nativeDirectVoice": {
+    "output": "I'm Xiaojiu, your voice assistant — I can look things up, answer questions, and help you get stuff done.",
+    "input": "Please introduce yourself in one short sentence.",
+    "physicalDevice": false,
+    "responseCompleted": true,
+    "chunks": 71,
+    "acks": 71,
+    "playbackTimingSimulated": true,
+    "nativeProductionTransport": true,
+    "error": "",
+    "directEndpoint": "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0",
+    "syntheticInput": true
+  },
+  "nativeDirectCamera": {
+    "physicalDevice": false,
+    "chunks": 17,
+    "acks": 17,
+    "nativeProductionTransport": true,
+    "jpegSize": 6546,
+    "error": "",
+    "output": "The word is \"HELLO\".",
+    "maxQueuedBytes": 6743,
+    "input": "Please answer briefly.",
+    "responseCompleted": true,
+    "videoFrames": 9,
+    "playbackTimingSimulated": true,
+    "directEndpoint": "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0",
+    "syntheticInput": true
+  },
+  "mobileUiSimulation": {
+    "simulatedNativeBridge": true,
+    "realDevice": false,
+    "login": true,
+    "rememberedPreference": true,
+    "actualInputDisplay": true,
+    "routeSelection": true,
+    "callEnd": true,
+    "historyExport": true,
+    "overflow": false,
+    "errors": []
+  },
+  "publicDownloads": {
+    "http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk": {
+      "status": 200,
+      "bytes": 1173342,
+      "mime": "application/vnd.android.package-archive",
+      "sha256Matches": true
+    },
+    "https://guihualab.cn/liveai/downloads/liveai-latest.apk": {
+      "status": 200,
+      "bytes": 1173342,
+      "mime": "application/vnd.android.package-archive",
+      "sha256Matches": true
+    },
+    "http://42.192.115.30:8182/": {
+      "status": 401
+    },
+    "https://guihualab.cn/liveai/api/models": {
+      "status": 401
+    },
+    "existingTtydDownloadStatus": 200
+  },
+  "publicWebsite": {
+    "publicNavigationLink": true,
+    "previewLoaded": true,
+    "productionBrowserLogin": true,
+    "retainedLoginAfterReload": true,
+    "navigationMobileOverflow": false,
+    "errors": []
+  }
 }
