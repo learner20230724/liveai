@@ -4,7 +4,7 @@ MOSS Live 工作台与独立 Android 客户端，包含实时语音、摄像头�
 
 [下载 APK](http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk) · [HTTPS 备用](https://guihualab.cn/liveai/downloads/liveai-latest.apk) · [网页兼容入口](https://guihualab.cn/liveai/) · [规划 Lab](https://guihualab.cn/)
 
-## Android 3.1
+## Android 3.2
 
 同包名 `cn.guihualab.liveai`、同签名，直接覆盖安装旧版，保留本地数据。通用单 APK，不含 ABI 专用 `.so`，兼容 ARM64。原生能力变更需要本次 APK；后续页面继续完整 ZIP OTA 更新。
 
@@ -19,11 +19,11 @@ MOSS Live 工作台与独立 Android 客户端，包含实时语音、摄像头�
 
 ## 网页与兼容性
 
-电脑 Chrome / Edge 安装本项目的 `browser-extension` 后，网页的语音、摄像头、屏幕共享、图像生成和图片理解均直连 MOSS；未安装时保留界面并提供安装入口，不会回退到服务器中转。安装说明：https://guihualab.cn/liveai/direct-install.html 。扩展通过当前登录会话领取 RSA 加密配置，密钥只在扩展会话存储及精确限定的请求头规则中，页面拿不到明文。扩展为指定 WSS 添加 Authorization，并移除官网不接受的本站 Origin；HTTP 工具运行在扩展 offscreen 文档中。本站只提供网页、登录、加密配置、付费密码验证和在线更新。Android 语音/摄像头/工具继续原生直连，APP 当前没有手机屏幕共享。
+电脑 Chrome / Edge 安装本项目的 `browser-extension` 后，网页的语音、摄像头、屏幕共享、图像生成和图片理解均直连 MOSS；未安装时保留界面并提供安装入口，不会回退到服务器中转。安装说明：https://guihualab.cn/liveai/direct-install.html 。扩展通过当前登录会话领取 RSA 加密配置，密钥只在扩展会话存储及精确限定的请求头规则中，页面拿不到明文。扩展为指定 WSS 添加 Authorization，并移除官网不接受的本站 Origin；HTTP 工具运行在扩展 offscreen 文档中。本站只提供网页、登录、加密配置、付费密码验证和在线更新。Android 语音、摄像头、屏幕共享与工具均原生直连。手机屏幕共享在通话中手动开启，每次通过系统授权选择整个屏幕或单个应用；切到其他应用继续共享，锁屏停止屏幕采集、语音继续。
 
 3.1.0 将三种模式改为不同的中文任务指令，修复长回复折行/滚动及空最终文本事件，去除旧视觉故障提示和装饰绿点。仅实时对话文字保留历史；图像为当前运行的临时任务，浏览器刷新后不恢复，Android 新进程清理上次生成缓存，已保存相册文件保留。APP 3.1.0/code5 沿用包名、签名及文字记录，因修改原生指令和媒体历史策略需一次覆盖更新；以后普通网页修改仍走 OTA。
 
-MOSS VL 的上游目前仍返回模型版本不存在；入口保留真实错误状态。MOSS VL Realtime 是独立协议，仍为目录项；本项目实时画面交互由 MOSS Live 提供。网页屏幕共享依赖浏览器支持，APP 没有原生 MediaProjection。
+MOSS VL 已实测可用，入口显示实际请求结果。MOSS VL Realtime 是独立协议，仍为目录项；本项目实时画面交互由 MOSS Live 提供。网页屏幕共享依赖浏览器支持；APP 使用原生 MediaProjection，由通话前台服务持有。
 
 图像结果可能有官网链接时效：原生成功任务会先把原图缓存到手机再展示。图像任务最多保留最近 80 项（待处理任务优先保留），删除任务会删除对应私有缓存；保存到相册的副本独立保留。网页只在当前页面进程内持续执行，关闭整个浏览器不会获得 Android 后台服务能力。本机/网页计数不是账号余额或平台账单。
 

@@ -1,0 +1,91 @@
+{
+  "version": "3.2.0",
+  "versionCode": 6,
+  "nativeTests": 31,
+  "nativeFailures": 0,
+  "nodeTests": 27,
+  "physicalDeviceTested": false,
+  "adbDevices": 0,
+  "serviceProjectionUsesFakeInTests": true,
+  "uiRegression": {
+    "nativeBridgeSimulated": true,
+    "providerResponsesSimulated": true,
+    "physicalDevice": false,
+    "continuousClicks": true,
+    "tenRunningTwoQueued": true,
+    "providerQuotaDisplayed": true,
+    "otherToolsDuringGeneration": true,
+    "passwordRequiredForPaid": true,
+    "noAutomaticPaidRequest": true,
+    "explicitPaidAction": true,
+    "freeImageDefault": true,
+    "nativeAlbumSaveNoBrowserPopup": true,
+    "nativeAudioSave": true,
+    "nativeCallRetained": true,
+    "screenConsentCancelledThenAccepted": true,
+    "cameraAndScreenControls": true,
+    "screenRetainedAcrossTools": true,
+    "stopScreenKeepsVoice": true,
+    "historyExport": true,
+    "desktopCompatibility": true,
+    "noHubApiRequests": true,
+    "horizontalOverflow": false,
+    "errors": []
+  },
+  "nativeProviderTransportProbe": {
+    "maximumQueuedBytes": 20512,
+    "physicalDevice": false,
+    "responseTranscriptCompleted": false,
+    "mediaProjectionHardwareTested": false,
+    "screenFrames": 45,
+    "error": "",
+    "jpegBytes": 14264,
+    "endpoint": "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0",
+    "syntheticScreenAndSpeech": true,
+    "audioInputFrames": 2216,
+    "receivedAudioChunks": 22,
+    "responseStarted": false,
+    "responseTextCharacters": 0,
+    "playbackVerified": false,
+    "productionNativeTransport": true
+  },
+  "protectedDeviceSurfacesTested": false,
+  "androidReferences": [
+    "https://developer.android.com/media/grow/media-projection",
+    "https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection"
+  ],
+  "publishedApk": {
+    "packageName": "cn.guihualab.liveai",
+    "versionCode": 6,
+    "versionName": "3.2.0",
+    "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a",
+    "sha256": "983b95f88b45517f2f77322f7b128c627c9eb81d6bc9b1038b9e163447855d0b",
+    "size": 1206110,
+    "downloadUrl": "https://guihualab.cn/liveai/downloads/liveai-android-3.2.0.apk"
+  },
+  "publicOta": {
+    "version": "3.2.0",
+    "channel": "liveai-stable",
+    "sha256": "41a4a09dc2892971140201faac44ab8617c90ea38eff463089be376edfeea3a1",
+    "size": 111452,
+    "minShellVersion": 1,
+    "publishedAt": "2026-11-04T17:53:03.170897+00:00",
+    "digestVerified": true,
+    "matchesBuiltResources": true
+  },
+  "publicHealth": {
+    "ok": true,
+    "service": "LiveAI",
+    "version": "3.2.0"
+  },
+  "publicEntry": {
+    "realProductionLogin": true,
+    "sessionCatalogLogout": true,
+    "webVersion": "3.2.0",
+    "navigationUpdated": true,
+    "previewLoaded": true,
+    "externalEntry": true,
+    "mobileOverflow": false,
+    "errors": []
+  }
+}

@@ -1,12 +1,12 @@
-# LiveAI Android 3.0 与在线更新
+# LiveAI Android 3.2 与在线更新
 
 [IP 下载](http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk) · [HTTPS 备用](https://guihualab.cn/liveai/downloads/liveai-latest.apk)
 
 ## 安装与保留数据
 
-外壳 **3.0.0 / versionCode 4**，包名 `cn.guihualab.liveai`，沿用原证书，不要卸载旧版，直接覆盖安装。最低 API 26，compile/target 36；Java/Kotlin 通用 APK，不含 ABI 专用 `.so`，兼容 M153 的 ARM64。
+外壳 **3.2.0 / versionCode 6**，包名 `cn.guihualab.liveai`，沿用原证书，不要卸载旧版，直接覆盖安装。最低 API 26，compile/target 36；Java/Kotlin 通用 APK，不含 ABI 专用 `.so`，兼容 M153 的 ARM64。
 
-本次新增原生 HTTP 直连、工具前台服务、私有结果缓存及 MediaStore 相册写入，必须更新一次 APK。页面、样式和提示词以后仍通过 OTA 更新，不要求每次安装。App 数据目录与 `https://guihualab.cn/liveai/` origin 保持一致，旧对话/草稿仍可见。
+本次新增原生 MediaProjection 屏幕共享和对应前台服务类型，需要覆盖更新一次 APK；原生 HTTP 直连、工具前台服务及 MediaStore 相册写入继续保留。页面、样式和提示词以后仍通过 OTA 更新，不要求每次安装。App 数据目录与 `https://guihualab.cn/liveai/` origin 保持一致，旧对话/草稿仍可见。
 
 首次打开输入现有规划 Lab 共享密码，可勾选本机加密记住。密码和 MOSS Key 不在安装包、源码或 OTA 内。配置接口通过临时 RSA-OAEP SHA-256 公钥把运行期凭据给原生，原生用 Android Keystore AES-GCM 保存；JS 只取得是否就绪及处理结果。
 
@@ -18,7 +18,7 @@
 - 超时/断线可能已被受理，不能自动重复生成；付费操作也不自动重复。取消本机等待不保证撤销官网已受理的工作。
 - 每次请求强制 `output_watermark: {enabled:false}`，关闭官网可见 AI 水印；下载原始 PNG，不画本地标识，也不重新编码。
 - 成功后先将官方原图缓存到手机私有目录，界面从本地读取。点击「保存到相册」经 `MediaStore.Images` 写入 `Pictures/LiveAI`；写入时用 pending 行，完整成功后发布，失败删除不完整条目。Android 10+ 无需相册读取/全盘存储权限，Android 8/9 在保存时才请求写入权限。不会跳转浏览器。
-- 图像记录加密保留最近 80 项，待处理任务优先保留；移除完成任务同时移除对应私有缓存，已存相册副本不删除。进程被系统终止后，未确认完成的任务显示中断，不自动重发；已缓存结果继续可读。
+- 图像任务和私有结果仅保留在当前进程。下次进程启动清理旧生成缓存；已保存相册副本不删除。历史仅保留实时对话文字。
 
 工具任务由独立 dataSync 前台服务持有局部唤醒锁，锁屏/切页不主动取消。系统强制停止、权限撤销、厂商电池策略仍能中断，Android 的前台服务时限也不能绕过。会话麦克风继续使用独立 microphone 前台服务。
 
@@ -38,7 +38,7 @@ TTS/多人合成可填写或读取官网声音 ID，声音设计可直接填写�
 
 录音为 VOICE_COMMUNICATION，Android 12+ 用 `setCommunicationDevice`，旧版本使用 SCO；支持可双向通话的蓝牙/BLE、USB、有线耳机，显示 `AudioRecord.getRoutedDevice()` 的真实输入。音乐 A2DP 连接本身不表示耳机麦克风可用。画面为最大 480 px / 1 fps JPEG，拥塞跳过画面优先语音；播放确认依据 AudioTrack 实际播放头。
 
-保留底部对话、图像、视觉、模型、记录，以及口语陪练等模式。双指缩放、安全区域、软键盘、系统选图/选音频与文字导出沿用原生外壳。没有新增 Android MediaProjection，屏幕共享请用支持的电脑浏览器。
+保留底部对话、图像、视觉、模型、记录，以及口语陪练等模式。双指缩放、安全区域、软键盘、系统选图/选音频与文字导出沿用原生外壳。3.2.0 新增 Android MediaProjection 屏幕共享：通话中授权后可分享整个屏幕或单个应用，屏幕 JPEG 与语音经同一原生 MOSS WebSocket 直连。
 
 ## OTA 与维护
 
@@ -72,3 +72,15 @@ JDK 21、SDK/Build Tools 36、Gradle 8.14.3、AGP 8.13.0。首次在新环境构
 ## 3.1.0 / code 5
 
 模式指令由所选中文角色同时配置 persona 和 instructions，移除固定中文闲聊指令与英语陪练的冲突。原生不再持久保存图片任务；下一进程启动清理生成缓存，不处理 Pictures/LiveAI 中的相册导出。实时文字记录、凭据、origin 和 OTA 通道保持兼容。该原生变更需要同签名覆盖安装，页面同时通过 OTA 发布。
+
+## 手机屏幕共享（3.2.0）
+
+开始通话后点击「共享屏幕」，在 Android 系统框中选择整个屏幕或单个应用。切换到其他应用后继续采集；手机通过原生 OkHttp WebSocket 将 `0x02 + JPEG` 直接发送至 MOSS，截图不经过规划 Lab、JS、记录或磁盘。相机使用 `0x01`，麦克风使用 `0x00`，共用原有实时连接。
+
+LiveCallService 在使用授权结果之前先声明 microphone|mediaProjection 前台服务类型，持有一个 MediaProjection/VirtualDisplay/ImageReader。每次新共享重新申请授权，不保存授权 token。旋转/窗口变化只调整原虚拟显示和图像 Surface，不重复消费授权。画面每秒最多一张，最长边 960、JPEG 上限 32 KiB，短暂拥塞丢画面并优先语音，两种画面都有时避免单一路持续占用队列。
+
+APP 按钮、通话通知和系统共享指示均可停止共享；关闭整场通话同步释放采集资源。切出 APP 不停止屏幕共享，相机保持原有仅前台采集规则。锁屏会停止屏幕采集，后台语音继续；解锁后不会自动重新共享。用户取消授权或系统撤销共享不会结束语音。
+
+自动测试包含授权取消/重复结果拒绝、前台服务提升、页面退出与其他工具使用、画面 tag/尺寸/队列/公平性、停止/锁屏/系统撤销保持语音、断线后恢复协议且不重新使用投屏授权，以及带行填充 RGBA 与真实 JPEG 编码。没有连接 M153，实际系统授权框、旋转、单应用选区和机型电源策略仍需真机验证。
+
+Android 官方约定：[MediaProjection](https://developer.android.com/media/grow/media-projection)、[前台服务类型](https://developer.android.com/develop/background-work/services/fgs/service-types#media-projection)。

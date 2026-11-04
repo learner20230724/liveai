@@ -39,7 +39,8 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
     private CameraFrames cameraFrames;
     private boolean frontCamera, pendingCamera, pendingNativeStart;
     private String nativePrompt="";
-    private static final int CALL_PERMISSION=31, CAMERA_PERMISSION=32, GALLERY_PERMISSION=33, SAVE_BINARY=23;
+    private static final int CALL_PERMISSION=31, CAMERA_PERMISSION=32, GALLERY_PERMISSION=33, SAVE_BINARY=23, SCREEN_CONSENT=34;
+    private boolean pendingScreenConsent, resumeCameraAfterScreen;
     private String galleryRequestId,galleryPayload,pendingOutput;
     private final Handler startup = new Handler(Looper.getMainLooper());
     private final ExecutorService files = Executors.newSingleThreadExecutor();
@@ -47,6 +48,7 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
     @SuppressLint("SetJavaScriptEnabled")
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        if(state!=null){pendingScreenConsent=state.getBoolean("screenConsentPending",false);resumeCameraAfterScreen=state.getBoolean("screenRestoreCamera",false);}
         root = new FrameLayout(this); root.setBackgroundColor(0xfff6f8f5); setContentView(root);
         if (Build.VERSION.SDK_INT >= 30) {
             getWindow().setDecorFitsSystemWindows(false);
@@ -204,6 +206,9 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         @JavascriptInterface public void muteCall(boolean muted) { if(trusted())LiveCallService.mute(muted); }
         @JavascriptInterface public void audioRoute(String route) { if(trusted()&&route!=null&&route.matches("auto|speaker|earpiece|device:[0-9]+")){getSharedPreferences("call-options",MODE_PRIVATE).edit().putString("route",route).apply();LiveCallService.route(route);} }
         @JavascriptInterface public void toggleCamera() { runOnUiThread(()->{if(!trusted()||!resumed||!LiveCallService.active())return;if(cameraFrames!=null){closeCamera();return;}if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION);else startCamera();}); }
+        @JavascriptInterface public int screenVersion(){return 1;}
+        @JavascriptInterface public void startScreenShare(){runOnUiThread(MainActivity.this::requestScreenShare);}
+        @JavascriptInterface public void stopScreenShare(){if(trusted())LiveCallService.endScreen();}
         @JavascriptInterface public void flipCamera() { runOnUiThread(()->{if(!trusted()||cameraFrames==null)return;frontCamera=!frontCamera;closeCamera();startCamera();}); }
         @JavascriptInterface public void allowBackground() { runOnUiThread(()->{if(!trusted())return;try{startActivity(new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,Uri.parse("package:"+getPackageName())));}catch(RuntimeException ignored){startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));}}); }
         @JavascriptInterface public void appSettings() { runOnUiThread(()->{if(trusted())startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));}); }
@@ -226,6 +231,12 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED&&!permissions.getBoolean("notifications",false)){required.add(Manifest.permission.POST_NOTIFICATIONS);permissions.edit().putBoolean("notifications",true).apply();}
         if(required.isEmpty()){pendingNativeStart=true;startNativeCall();}else requestPermissions(required.toArray(new String[0]),CALL_PERMISSION);
     }
+    private void requestScreenShare(){
+        if(!trusted()||!resumed||!LiveCallService.active()||pendingScreenConsent||LiveCallService.screenActive())return;
+        pendingScreenConsent=true;resumeCameraAfterScreen=cameraFrames!=null;
+        try{startActivityForResult(getSystemService(android.media.projection.MediaProjectionManager.class).createScreenCaptureIntent(),SCREEN_CONSENT);}
+        catch(RuntimeException failure){pendingScreenConsent=false;resumeCameraAfterScreen=false;event(message("error","无法打开系统屏幕共享授权"));}
+    }
     private void startNativeCall(){if(!resumed||!pendingNativeStart)return;pendingNativeStart=false;try{startForegroundService(new Intent(this,LiveCallService.class).setAction(LiveCallService.START).putExtra("prompt",nativePrompt));}catch(RuntimeException e){event(message("error","无法启动通话服务，请检查麦克风和后台运行权限"));}}
     private void startCamera(){pendingCamera=false;if(!resumed||!LiveCallService.active())return;try{cameraFrames=new CameraFrames(this,new CameraFrames.Listener(){public void opened(){LiveCallService.video(true);}public void closed(String error){runOnUiThread(()->{cameraFrames=null;LiveCallService.video(false);event(message("error",error));});}public void frame(byte[] jpeg){LiveCallService.frame(jpeg);if(resumed){JSONObject e=message("preview",android.util.Base64.encodeToString(jpeg,android.util.Base64.NO_WRAP));event(e);}}});int rotation=getWindowManager().getDefaultDisplay().getRotation()*90;cameraFrames.start(frontCamera,rotation);}catch(Exception e){closeCamera();event(message("error","摄像头未能启动，请检查相机权限"));}}
     private void closeCamera(){CameraFrames frames=cameraFrames;cameraFrames=null;if(frames!=null)frames.close();LiveCallService.video(false);}
@@ -233,6 +244,17 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         super.onActivityResult(requestCode,resultCode,data); selectingFile=false;
         if (requestCode==OPEN_FILE && fileCallback!=null) { ValueCallback<Uri[]> callback=fileCallback;fileCallback=null;callback.onReceiveValue(resultCode==RESULT_OK && data!=null && data.getData()!=null?new Uri[]{data.getData()}:null); }
         if(requestCode==SAVE_BINARY){String token=pendingOutput;pendingOutput=null;File source=DirectTools.get(this).file(token);if(resultCode==RESULT_OK&&data!=null&&data.getData()!=null&&source!=null){Uri uri=data.getData();files.execute(()->{try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(uri,"w")){if(out==null)throw new IOException();MossHttp.copy(in,out,100L*1024*1024);runOnUiThread(()->toast("音频已保存"));}catch(Exception e){runOnUiThread(()->toast("音频保存失败，请重试"));}});}}
+        if(requestCode==SCREEN_CONSENT){
+            boolean expected=pendingScreenConsent;pendingScreenConsent=false;
+            boolean restoreCamera=resumeCameraAfterScreen;resumeCameraAfterScreen=false;
+            if(!expected||!trusted()||!LiveCallService.active())return;
+            if(resultCode==RESULT_OK&&data!=null){
+                try{startForegroundService(new Intent(this,LiveCallService.class).setAction(LiveCallService.SCREEN_START).putExtra("resultCode",resultCode).putExtra("consent",data));}
+                catch(RuntimeException failure){event(message("error","屏幕共享未能启动，请重新授权"));}
+            }
+            if(restoreCamera){pendingCamera=true;if(resumed)startCamera();}
+            event(message("refresh","call"));return;
+        }
         if (requestCode==SAVE_TEXT) {
             String text=pendingText; pendingText=null;
             if (resultCode!=RESULT_OK || data==null || data.getData()==null || text==null) return;
@@ -249,6 +271,6 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
     @Override protected void onResume() { super.onResume();resumed=true;web.onResume();CallEvents.listen(this);if(pendingNativeStart)startNativeCall();if(pendingCamera)startCamera();event(message("refresh","call")); }
     @Override protected void onPause() { resumed=false;CallEvents.listen(null);closeCamera();CookieManager.getInstance().flush();super.onPause(); }
     @Override protected void onStop() { web.onPause();super.onStop(); }
-    @Override protected void onSaveInstanceState(Bundle state) { web.saveState(state);super.onSaveInstanceState(state); }
+    @Override protected void onSaveInstanceState(Bundle state) { web.saveState(state);state.putBoolean("screenConsentPending",pendingScreenConsent);state.putBoolean("screenRestoreCamera",resumeCameraAfterScreen);super.onSaveInstanceState(state); }
     @Override protected void onDestroy() { ownDocument=false;startup.removeCallbacksAndMessages(null);closeCamera();if(pendingPermission!=null)pendingPermission.deny();if(fileCallback!=null)fileCallback.onReceiveValue(null);web.removeJavascriptInterface("LiveAIAndroid");web.destroy();files.shutdown();super.onDestroy(); }
 }
