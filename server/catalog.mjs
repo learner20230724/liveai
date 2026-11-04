@@ -1,4 +1,4 @@
-export const verifiedAt = "2026-11-04";
+export const verifiedAt = "2026-11-05";
 export const models = [
   {
     id: "moss-live-1.0",

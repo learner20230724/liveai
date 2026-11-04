@@ -19,3 +19,4 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: node scripts/check-parallel-tools.mjs
+      - run: node scripts/check-live-upload.mjs

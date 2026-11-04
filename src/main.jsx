@@ -92,7 +92,8 @@ function App() {
     [selectedRecord, setSelectedRecord] = useState(null),
     [seconds, setSeconds] = useState(0),
     [stats, setStats] = useState(null),
-    [pendingMedia, setPendingMedia] = useState("");
+    [pendingMedia, setPendingMedia] = useState(""),
+    [networkBusy,setNetworkBusy] = useState(false);
   const engine = useRef(null),
     lines = useRef([]),
     began = useRef(0),
@@ -272,6 +273,7 @@ function App() {
       onState: handleState,
       onEvent: event,
       onError: setError,
+      onNetwork:setNetworkBusy,
       onMedia: (source, stream) =>
         setMedia((old) => ({ ...old, [source]: stream })),
       onLevel: setLevel,
@@ -388,7 +390,7 @@ function App() {
           <div className="topbar-right">
             <span className="top-status">
               <i />
-              MOSS API
+              网页兼容 · 经本站中转
             </span>
             <span className="beta">BETA</span>
           </div>
@@ -537,6 +539,11 @@ function App() {
             <>
               {section === "live" && (
                 <>
+                  <section className="live-route-note" aria-label="当前连接方式">
+                    <div><strong>当前是网页中转通道</strong><p>语音、摄像头和屏幕共享均经过本站转发。手机 APP 的语音和摄像头直连 MOSS；当前 APP 尚不支持手机屏幕共享。</p></div>
+                    <a className="button subtle" href="/liveai/downloads/liveai-latest.apk"><Download size={16}/>下载直连 APP</a>
+                  </section>
+                  {networkBusy&&<div className="live-network-note" role="status">网页上传暂时繁忙，正在减少画面发送、优先语音。</div>}
                   {settings && (
                     <section className="settings-panel">
                       <div>

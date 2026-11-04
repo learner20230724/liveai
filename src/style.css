@@ -2421,3 +2421,5 @@ h1 {
   }
 }
 .native-capability{font-size:10px;color:#829175;text-align:center;padding:0 15px 18px;line-height:1.8}
+
+.live-route-note{display:flex;align-items:center;justify-content:space-between;gap:18px;border:1px solid #dce7d5;background:#f4f8ef;padding:17px 20px;border-radius:13px;margin:0 0 20px}.live-route-note strong{font-size:13px;color:#527246}.live-route-note p{font-size:12px;line-height:1.8;color:#687e5c;margin-top:7px;max-width:700px}.live-route-note>.button{white-space:nowrap;flex-shrink:0;font-size:12px}.live-network-note{border:1px solid #ecdfc3;background:#faf5e9;color:#8a744a;border-radius:10px;padding:12px 16px;font-size:12px;margin-bottom:16px;line-height:1.8}@media(max-width:680px){.live-route-note{padding:15px;align-items:flex-start;flex-direction:column;gap:13px}.top-status{font-size:10px}}

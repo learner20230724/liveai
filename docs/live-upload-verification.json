@@ -1,0 +1,65 @@
+{
+  "nodeTests": 23,
+  "canvasBrowser": {
+    "syntheticMedia": true,
+    "realProvider": false,
+    "physicalDevice": false,
+    "stayedConnected": true,
+    "cameraPackets": 4,
+    "screenPackets": 4,
+    "audioPackets": 171,
+    "maximumVideoPacket": 30797,
+    "tracksReleased": true,
+    "errors": []
+  },
+  "realProviderBrowser": {
+    "realMossProvider": true,
+    "transport": "browser -> guihualab.cn gateway -> api.mosi.cn",
+    "newAssetsInterceptedOnlyInTestBrowser": true,
+    "productionAuth": true,
+    "syntheticMicrophoneCameraAndScreen": true,
+    "physicalDevice": false,
+    "responseCompleted": true,
+    "audio": 747,
+    "camera": 15,
+    "screen": 15,
+    "acknowledged": 63,
+    "maxVideoPacket": 25719,
+    "tracksReleased": true,
+    "errors": []
+  },
+  "observedOriginalErrorSource": "browser websocket sender, 128000-byte threshold",
+  "oldFailureMode": "single screen JPEG could enqueue above the next microphone callback threshold",
+  "physicalDeviceTested": false,
+  "ownerPcNetworkTested": false,
+  "currentOfficialModelPricing": {
+    "verifiedAt": "2026-11-05",
+    "model": "moss-live-1.0",
+    "status": "limited-time free",
+    "credits": 0,
+    "source": "https://platform.moss.cn/docs/models/moss-live/"
+  },
+  "publicOta": {
+    "manifest": {
+      "version": "3.0.1",
+      "channel": "liveai-stable",
+      "sha256": "4ef8216fd036b381bc03c7b28bb1b2ed74198f94f333a456f1dcc60743e7d2ba",
+      "size": 110607,
+      "minShellVersion": 1,
+      "publishedAt": "2026-11-04T16:34:47.121016+00:00"
+    },
+    "digestVerified": true,
+    "matchesBuiltResources": true,
+    "nativeApkUnchanged": "3.0.0/code4"
+  },
+  "publicWebsite": {
+    "publicProductionLogin": true,
+    "routeNotice": true,
+    "mobileOverflow": false,
+    "publicNavigationCard": true,
+    "previewLoaded": true,
+    "externalNavigation": true,
+    "anonymousLoginRequired": true,
+    "errors": []
+  }
+}

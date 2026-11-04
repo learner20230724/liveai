@@ -1,7 +1,8 @@
 import { nativeShell } from "./native.js";
+import {AUDIO_QUEUE_LIMIT,VIDEO_QUEUE_LIMIT,VIDEO_FRAME_LIMIT,CONGESTION_TIMEOUT,encodeLiveFrame} from './live-upload.js';
 export class LiveSession {
-  constructor({ onState, onEvent, onError, onMedia, onLevel }) {
-    Object.assign(this, { onState, onEvent, onError, onMedia, onLevel });
+  constructor({ onState, onEvent, onError, onMedia, onLevel, onNetwork }) {
+    Object.assign(this, { onState, onEvent, onError, onMedia, onLevel, onNetwork });
     this.contexts = [];
     this.sources = new Set();
     this.turns = new Map();
@@ -12,6 +13,28 @@ export class LiveSession {
     this.muted = false;
     this.ready = false;
     this.stopping = false;
+    this.congestedSince=null;
+    this.networkBusy=false;
+    this.droppedAudio=0;
+    this.droppedVideo=0;
+    this.lastVideoSource=null;this.lastVideoAt=0;
+  }
+  network(busy){if(this.networkBusy===busy)return;this.networkBusy=busy;this.onNetwork?.(busy);}
+  sendMicrophone(pcm,now=performance.now()){
+    if(!this.ready||this.stopped||this.ws?.readyState!==WebSocket.OPEN)return false;
+    if(this.ws.bufferedAmount+pcm.byteLength+1>AUDIO_QUEUE_LIMIT){
+      this.droppedAudio++;this.network(true);if(this.congestedSince===null)this.congestedSince=now;
+      if(now-this.congestedSince>=CONGESTION_TIMEOUT)this.error('浏览器到本站的上传队列持续拥塞，已结束网页会话。请检查网络，或改用 APP 直连；此提示不能判定官网故障。');
+      return false;
+    }
+    this.congestedSince=null;if(this.ws.bufferedAmount<VIDEO_QUEUE_LIMIT)this.network(false);
+    const packet=new Uint8Array(pcm.byteLength+1);packet.set(new Uint8Array(pcm),1);this.ws.send(packet);return true;
+  }
+  sendVideo(source,bytes,now=performance.now()){
+    if(this.stopped||!this.ready||!this.media.has(source)||this.ws?.readyState!==WebSocket.OPEN)return false;
+    if(this.media.has("camera")&&this.media.has("screen")&&this.lastVideoSource===source&&now-this.lastVideoAt<1500){this.droppedVideo++;return false;}
+    if(bytes.byteLength>VIDEO_FRAME_LIMIT||this.ws.bufferedAmount>VIDEO_QUEUE_LIMIT||this.ws.bufferedAmount+bytes.byteLength+1>AUDIO_QUEUE_LIMIT){this.droppedVideo++;return false;}
+    const packet=new Uint8Array(bytes.byteLength+1);packet[0]=source==='camera'?1:2;packet.set(bytes,1);this.ws.send(packet);this.lastVideoSource=source;this.lastVideoAt=now;return true;
   }
   send(value) {
     if (this.ws?.readyState === WebSocket.OPEN)
@@ -43,15 +66,7 @@ export class LiveSession {
       this.input.connect(this.capture);
       this.capture.connect(this.audio.destination);
       this.capture.port.onmessage = (e) => {
-        if (!this.ready || this.ws?.readyState !== WebSocket.OPEN) return;
-        if (this.ws.bufferedAmount > 128000) {
-          this.error("网络上传拥塞，已结束会话，请重试。");
-          return;
-        }
-        const pcm = new Uint8Array(e.data);
-        const packet = new Uint8Array(pcm.byteLength + 1);
-        packet.set(pcm, 1);
-        this.ws.send(packet);
+        if(!this.sendMicrophone(e.data))return;
         if (this.onLevel) {
           const s = new Int16Array(e.data);
           let sum = 0;
@@ -267,7 +282,6 @@ export class LiveSession {
     video.srcObject = stream;
     await video.play();
     const canvas = document.createElement("canvas");
-    const context = canvas.getContext("2d");
     this.send({ action: "video.state", source, enabled: true });
     this.send({ action: "video.stream_focus", source });
     let busy = false;
@@ -276,36 +290,18 @@ export class LiveSession {
         busy ||
         this.stopped ||
         !this.media.has(source) ||
-        !video.videoWidth ||
+        !video.videoWidth || !video.videoHeight ||
         this.ws?.readyState !== 1
       )
         return;
+      if(this.ws.bufferedAmount>VIDEO_QUEUE_LIMIT){this.droppedVideo++;return;}
       busy = true;
       try {
-        const ratio = Math.min(
-          1,
-          (source === "camera" ? 640 : 1024) /
-            Math.max(video.videoWidth, video.videoHeight),
-        );
-        canvas.width = Math.round(video.videoWidth * ratio);
-        canvas.height = Math.round(video.videoHeight * ratio);
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise((r) =>
-          canvas.toBlob(r, "image/jpeg", 0.8),
-        );
-        if (
-          blob &&
-          this.media.has(source) &&
-          this.ready &&
-          this.ws?.readyState === 1 &&
-          this.ws.bufferedAmount < 128000
-        ) {
-          const bytes = new Uint8Array(await blob.arrayBuffer());
-          const data = new Uint8Array(bytes.length + 1);
-          data[0] = source === "camera" ? 1 : 2;
-          data.set(bytes, 1);
-          this.ws.send(data);
-        }
+        const bytes=await encodeLiveFrame(video,canvas,source);
+        if(bytes)this.sendVideo(source,bytes);else this.droppedVideo++;
+      } catch {
+        // A failed snapshot must not terminate an otherwise healthy voice call.
+        this.droppedVideo++;
       } finally {
         busy = false;
       }
@@ -359,6 +355,7 @@ export class LiveSession {
     this.audio?.close().catch(() => {});
     if (this.ws && this.ws.readyState < 2) this.ws.close();
     this.onLevel?.(0);
+    this.network(false);
     this.onState("idle");
     this.stopping = false;
   }
