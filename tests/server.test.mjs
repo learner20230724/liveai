@@ -168,7 +168,7 @@ test('native owner provisioning encrypts the key to the device and requires auth
   assert.ok(!JSON.stringify(data).includes('test-only-secret-key'));assert.equal(data.endpoint,'wss://api.mosi.cn/v1/realtime?model=moss-live-1.0');
   assert.equal((await fetch(url+'/api/mobile/bootstrap',{method:'POST',headers:{...headers,Origin:'https://foreign.example'},body})).status,403);
 });
-test("invalid sizes/models fail locally without issuing upstream requests", async () => {
+test("retired relay endpoints reject before issuing upstream requests", async () => {
   for (const body of [
     { model: "moss-tts-1.5-flash", prompt: "hello" },
     { model: "moss-image-sft-1.0", prompt: "hello", size: "9000x9000" },
@@ -181,7 +181,7 @@ test("invalid sizes/models fail locally without issuing upstream requests", asyn
           body: JSON.stringify(body),
         })
       ).status,
-      400,
+      410,
     );
   const stats = await (await fetch(url + "/api/stats", { headers })).json();
   assert.equal(stats.requests, 0);
@@ -211,4 +211,11 @@ test("paid unlock checks the password without starting any provider operation",a
   const good=await fetch(url+"/api/paid/unlock",{method:"POST",headers,body:JSON.stringify({password:"paid-test-password"})});assert.equal(good.status,200);const data=await good.json();assert.equal(data.unlocked,true);assert.equal(data.nativeDirectRequired,true);assert.equal(data.expiresIn,1800);
   const foreign=await fetch(url+"/api/paid/unlock",{method:"POST",headers:{...headers,Origin:"https://foreign.example"},body:JSON.stringify({password:"paid-test-password"})});assert.equal(foreign.status,403);
   const stats=await (await fetch(url+"/api/stats",{headers})).json();assert.equal(stats.requests,0);
+});
+test('browser companion bootstrap shares authenticated encrypted provisioning',async()=>{
+ const path=url+'/api/browser/bootstrap';assert.equal((await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).status,401);
+ const {publicKey,privateKey}=generateKeyPairSync('rsa',{modulusLength:2048});const response=await fetch(path,{method:'POST',headers,body:JSON.stringify({publicKey:publicKey.export({type:'spki',format:'pem'})})});assert.equal(response.status,200);const data=await response.json();assert.equal(privateDecrypt({key:privateKey,padding:constants.RSA_PKCS1_OAEP_PADDING,oaepHash:'sha256'},Buffer.from(data.encryptedKey,'base64')).toString(),'test-only-secret-key');
+});
+test('authenticated legacy WebSocket relay is retired without contacting MOSS',async()=>{
+ const status=await new Promise((resolve,reject)=>{const socket=new WebSocket(url.replace('http','ws')+'/api/live',{headers:{...headers,Origin:'https://guihualab.cn'}});socket.on('unexpected-response',(_,r)=>{r.resume();resolve(r.statusCode)});socket.on('error',reject)});assert.equal(status,410);
 });

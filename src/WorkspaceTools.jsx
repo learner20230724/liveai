@@ -45,12 +45,6 @@ export function VisionStudio({ onError }) {
   }
   return (
     <>
-      <div className="alert warning">
-        <span>
-          上游状态：MOSS VL
-          当前返回“模型版本不存在”。可以保留此入口等待恢复，或使用实时对话中的摄像头理解画面。
-        </span>
-      </div>
       <div className="studio-layout">
         <form className="studio-form" onSubmit={submit}>
           <div className="studio-title">
@@ -101,11 +95,9 @@ export function VisionStudio({ onError }) {
             ) : (
               <RefreshCw size={18} />
             )}{" "}
-            {busy ? "正在请求" : "重试上游视觉模型"}
+            {busy ? "正在请求" : "开始理解"}
           </button>
-          <p className="field-hint">
-            点击后才会上传图片到 MOSS，任务完成后尝试删除临时上传文件。
-          </p>
+
         </form>
         <section className="vision-result">
           {result ? (
@@ -117,7 +109,7 @@ export function VisionStudio({ onError }) {
             <div className="empty-large">
               <ScanEye size={38} />
               <h2>在这里读懂画面</h2>
-              <p>模型恢复后，可以提取文字、识别物品或描述场景。</p>
+              <p>提取文字、识别物品或描述场景。</p>
             </div>
           )}
         </section>
@@ -136,9 +128,7 @@ export function Models({ catalog, stats, onRefresh }) {
           <ShieldCheck size={28} />
           <span>
             <strong>默认使用免费模型</strong>
-            <small>
-              付费需单独输入密码解锁 · 只在手动选择后调用 · 不自动充值
-            </small>
+
           </span>
         </div>
         <button className="button subtle" onClick={onRefresh}>
@@ -207,7 +197,7 @@ export function Models({ catalog, stats, onRefresh }) {
               <h3>{m.name}</h3>
               <code>{m.id}</code>
               <p>{m.description}</p>
-              {m.note && <small>{m.note}</small>}
+
               <div className="model-price">
                 <strong>{m.price}</strong>
                 {tier === "paid" ? (
@@ -219,10 +209,7 @@ export function Models({ catalog, stats, onRefresh }) {
             </article>
           ))}
       </div>
-      <p className="field-hint">
-        目录核对日期：{catalog?.verifiedAt}
-        。限免随平台政策变化，使用前可核对官方费用；本服务没有账号余额查询权限，不显示估算余额。未知价格的模型不自动开放。
-      </p>
+
       {stats && (
         <div className="stats-bar">
           <div>

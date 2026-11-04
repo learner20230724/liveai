@@ -19,7 +19,7 @@ test('transient microphone congestion recovers; only continuous ten-second stall
   const {session,errors,network}=transport();session.ws.bufferedAmount=128001;
   assert.equal(session.sendMicrophone(new ArrayBuffer(640),0),false);assert.equal(session.sendMicrophone(new ArrayBuffer(640),9999),false);assert.equal(session.stopped,false);
   session.ws.bufferedAmount=0;assert.equal(session.sendMicrophone(new ArrayBuffer(640),10000),true);assert.deepEqual(network,[true,false]);
-  session.ws.bufferedAmount=128001;session.sendMicrophone(new ArrayBuffer(640),20000);session.sendMicrophone(new ArrayBuffer(640),30000);assert.equal(session.stopped,true);assert.equal(errors.length,1);assert.match(errors[0],/浏览器到本站/);assert.match(errors[0],/不能判定官网故障/);
+  session.ws.bufferedAmount=128001;session.sendMicrophone(new ArrayBuffer(640),20000);session.sendMicrophone(new ArrayBuffer(640),30000);assert.equal(session.stopped,true);assert.equal(errors.length,1);assert.match(errors[0],/到官网的上传持续拥塞/);
 });
 test('camera and screen are separately tagged and alternate instead of starving one source',()=>{
   const {session,packets}=transport();session.media.set('camera',{});session.media.set('screen',{});

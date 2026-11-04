@@ -35,6 +35,8 @@ import {
   Volume2,
   Menu,
 } from "lucide-react";
+import {prepareBrowserDirect} from './browser-direct.js';
+import {conversationProfile} from './conversation.js';
 import { LiveSession } from "./live";
 import { nativeShell, notifyNativeReady, nativeDirect } from "./native";
 import MobileApp from "./MobileApp";
@@ -71,6 +73,7 @@ function Brand() {
   );
 }
 function App() {
+  const [profile]=useState(()=>conversationProfile(read));
   const [section, setSection] = useState("live"),
     [auth, setAuth] = useState(null),
     [password, setPassword] = useState(""),
@@ -80,8 +83,8 @@ function App() {
     [catalog, setCatalog] = useState(null),
     [menu, setMenu] = useState(false);
   const [phase, setPhase] = useState("idle"),
-    [preset, setPreset] = useState("daily"),
-    [prompt, setPrompt] = useState(() => read("prompt", presets.daily.prompt)),
+    [preset, setPreset] = useState(profile.preset),
+    [prompt, setPrompt] = useState(profile.prompt),
     [settings, setSettings] = useState(false),
     [muted, setMuted] = useState(false),
     [level, setLevel] = useState(0),
@@ -94,11 +97,14 @@ function App() {
     [stats, setStats] = useState(null),
     [pendingMedia, setPendingMedia] = useState(""),
     [networkBusy,setNetworkBusy] = useState(false);
+  const [directReady,setDirectReady]=useState(false);
+  useEffect(()=>{if(auth)prepareBrowserDirect().then(setDirectReady)},[auth]);
   const engine = useRef(null),
     lines = useRef([]),
     began = useRef(0),
     lastInput = useRef(""),
     scroll = useRef(null),
+    drafts=useRef({}),
     phaseRef = useRef("idle");
   phaseRef.current = phase;
   const connected = phase !== "idle";
@@ -153,7 +159,7 @@ function App() {
   useEffect(() => {
     scroll.current?.scrollTo({
       top: scroll.current.scrollHeight,
-      behavior: "smooth",
+      behavior: "instant",
     });
   }, [transcript, draft]);
   useEffect(() => {
@@ -200,6 +206,9 @@ function App() {
   function handleState(value) {
     setPhase(value);
     if (value === "idle" && began.current) {
+      if(drafts.current.assistant)addLine("assistant",drafts.current.assistant,drafts.current.key||crypto.randomUUID());
+      if(drafts.current.user)addLine("user",drafts.current.user,"u-"+ ++lastInput.current);
+      drafts.current={};
       const duration = Math.floor((Date.now() - began.current) / 1000);
       if (lines.current.length) {
         const entry = {
@@ -235,34 +244,28 @@ function App() {
     setTranscript([...lines.current]);
   }
   function event(m) {
-    const d = m.data || {};
-    if (m.action === "input.transcript.updated")
-      setDraft((old) => ({ ...old, user: d.text }));
-    if (m.action === "input.transcript.done") {
-      addLine("user", d.text, "u-" + ++lastInput.current);
-      setDraft((old) => ({ ...old, user: "" }));
+    const d=m.data||{},key=`a-${d.run_id||"current"}-${d.turn_id||"current"}`;
+    if(m.action==="input.transcript.updated"){drafts.current.user=d.text||"";setDraft(old=>({...old,user:d.text||""}));}
+    if(m.action==="input.transcript.done"){
+      addLine("user",d.text||drafts.current.user,"u-"+ ++lastInput.current);drafts.current.user="";setDraft(old=>({...old,user:""}));
     }
-    if (m.action === "output.transcript.updated")
-      setDraft((old) => ({ ...old, assistant: d.text }));
-    if (m.action === "output.transcript.done") {
-      addLine("assistant", d.text, `a-${d.run_id}-${d.turn_id}`);
-      setDraft((old) => ({ ...old, assistant: "" }));
+    if(m.action==="output.transcript.updated"){
+      drafts.current.assistant=d.text||drafts.current.assistant||"";drafts.current.key=key;setDraft(old=>({...old,assistant:drafts.current.assistant}));
     }
-    if (m.action === "response.interrupted") {
-      if (d.text)
-        addLine(
-          "assistant",
-          d.text + "（已打断）",
-          `a-${d.run_id}-${d.turn_id}`,
-        );
-      setDraft((old) => ({ ...old, assistant: "" }));
+    if(m.action==="output.transcript.done"||m.action==="response.interrupted"){
+      const text=d.text||(drafts.current.key===key?drafts.current.assistant:"");
+      addLine("assistant",text+(text&&m.action==="response.interrupted"?"（已打断）":""),key);
+      drafts.current.assistant="";setDraft(old=>({...old,assistant:""}));
+    }
+    if(m.action==="response.ended"&&drafts.current.assistant){
+      addLine("assistant",drafts.current.assistant,drafts.current.key);drafts.current.assistant="";setDraft(old=>({...old,assistant:""}));
     }
   }
   async function start() {
     if (connected) return;
     setError("");
     setTranscript([]);
-    setDraft({});
+    setDraft({});drafts.current={};
     setMuted(false);
     lines.current = [];
     lastInput.current = 0;
@@ -329,18 +332,11 @@ function App() {
             >
               <Icon size={19} />
               <span>{name}</span>
-              {id === "live" && <span className="nav-dot" />}
+
             </button>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="free-note">
-            <ShieldCheck size={19} />
-            <div>
-              <strong>免费模式已开启</strong>
-              <span>付费请求由服务端关闭</span>
-            </div>
-          </div>
           <a
             href="https://platform.moss.cn/en/docs/models/"
             target="_blank"
@@ -390,9 +386,9 @@ function App() {
           <div className="topbar-right">
             <span className="top-status">
               <i />
-              网页兼容 · 经本站中转
+              {directReady?"官网直连":"未连接"}
             </span>
-            <span className="beta">BETA</span>
+            {!directReady&&<a className="button subtle" href="/liveai/direct-install.html" target="_blank" rel="noreferrer">安装直连扩展</a>}
           </div>
         </header>
         <div className="workspace">
@@ -428,8 +424,8 @@ function App() {
                     : section === "vision"
                       ? "上传图片，提问并获取对画面的理解。"
                       : section === "models"
-                        ? "免费与付费独立展示，绝不自动切换收费模型。"
-                        : "对话文字只保存在当前浏览器，可随时导出或删除。"}
+                        ? "查看可用模型与价格。"
+                        : "查看和导出实时对话。"}
               </p>
             </div>
             {auth && section === "live" && (
@@ -531,7 +527,7 @@ function App() {
                 </button>
                 <small>
                   <ShieldCheck size={14} />
-                  付费模型默认锁定，免费功能不会自动转收费。
+                  LiveAI
                 </small>
               </form>
             </section>
@@ -539,11 +535,6 @@ function App() {
             <>
               {section === "live" && (
                 <>
-                  <section className="live-route-note" aria-label="当前连接方式">
-                    <div><strong>当前是网页中转通道</strong><p>语音、摄像头和屏幕共享均经过本站转发。手机 APP 的语音和摄像头直连 MOSS；当前 APP 尚不支持手机屏幕共享。</p></div>
-                    <a className="button subtle" href="/liveai/downloads/liveai-latest.apk"><Download size={16}/>下载直连 APP</a>
-                  </section>
-                  {networkBusy&&<div className="live-network-note" role="status">网页上传暂时繁忙，正在减少画面发送、优先语音。</div>}
                   {settings && (
                     <section className="settings-panel">
                       <div>
@@ -557,7 +548,7 @@ function App() {
                           maxLength={8000}
                           rows={3}
                           value={prompt}
-                          onChange={(e) => setPrompt(e.target.value)}
+                          onChange={(e) => {setPrompt(e.target.value);setPreset("custom");save("preset","custom");save("prompt",e.target.value)}}
                           disabled={connected}
                         />
                       </label>
@@ -598,6 +589,7 @@ function App() {
                             onClick={() => {
                               setPreset(key);
                               setPrompt(p.prompt);
+                              save("preset",key);save("prompt",p.prompt);
                             }}
                           >
                             {p.name}
@@ -652,7 +644,7 @@ function App() {
                             <p>
                               {connected
                                 ? "你可以随时开口打断，自然接着聊。"
-                                : presets[preset].description}
+                                : (presets[preset]?.description||"按你的设置开始对话。")}
                             </p>
                           </>
                         )}
@@ -728,12 +720,6 @@ function App() {
                           </button>
                         )}
                       </div>
-                      <div className="stage-foot">
-                        <LockKeyhole size={12} />
-                        {connected
-                          ? "会话已连接 · 结束对话将释放所有设备"
-                          : "仅在你开始对话后，才使用麦克风和画面"}
-                      </div>
                       {nativeShell() && !navigator.mediaDevices?.getDisplayMedia && <p className="native-capability">APP 支持语音和摄像头；屏幕共享请在电脑浏览器使用。</p>}
                     </section>
                     <section className="transcript-card">
@@ -802,31 +788,7 @@ function App() {
                       </div>
                     </section>
                   </div>
-                  <div className="feature-row">
-                    {[
-                      [
-                        Headphones,
-                        "像聊天一样自然",
-                        "双向语音，支持随时打断。",
-                      ],
-                      [Video, "分享你看到的", "摄像头或屏幕，按需开启。"],
-                      [
-                        ShieldCheck,
-                        "费用始终可控",
-                        "免费模式，不会转用付费模型。",
-                      ],
-                    ].map(([Icon, title, desc]) => (
-                      <div key={title}>
-                        <span>
-                          <Icon size={20} />
-                        </span>
-                        <div>
-                          <h3>{title}</h3>
-                          <p>{desc}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+
                 </>
               )}
               {section === "images" && (
@@ -928,7 +890,7 @@ function App() {
               LiveAI · 网页 {webVersion}{nativeShell() ? " · 关闭后重开获取页面更新" : " · Powered by MOSS"}
             </span>
             <span>
-              限时免费政策以平台为准 ·{" "}
+
               <a
                 href="https://platform.moss.cn/app/pricing/"
                 target="_blank"

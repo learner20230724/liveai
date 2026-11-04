@@ -22,11 +22,11 @@ export default function PaidTools({unlocked}){
   const item=models.find(m=>m.id===model),speech=model.startsWith('moss-tts-'),dialogue=model==='moss-ttsd-1.0',design=model==='moss-voice-generator-1.0',transcribe=model.startsWith('moss-transcribe');
   const valid=model&&(transcribe?file:speech?text.trim()&&voice.trim():dialogue?text.trim()&&voice.trim()&&secondVoice.trim():design?text.trim()&&instruction.trim():false);
   return <section className="paid-tools">
-    <header><LockKeyhole size={20}/><div><h2>付费工具</h2><p>默认锁定。输入访问密码解锁 30 分钟，普通通话与图像仍默认使用免费模型。</p></div></header>
-    {!nativeTools()?<p className="alert warning">付费直连和相册保存需要 APP 3.0。<a href="/liveai/downloads/liveai-latest.apk">下载新版 APP</a></p>:!unlocked?<form onSubmit={unlock} className="paid-unlock-form"><label htmlFor="paid-password">付费解锁密码<input id="paid-password" type="password" autoComplete="current-password" maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} required placeholder="现有 LiveAI 访问密码"/></label><button className="button primary" disabled={unlocking||!password}>{unlocking?<LoaderCircle size={17} className="spin"/>:<Unlock size={17}/>}解锁付费模型</button></form>:<>
-      <div className="paid-unlocked"><span><Unlock size={16}/>已解锁 · 只在你手动提交时调用</span><button className="button subtle" onClick={lock}>重新锁定</button></div>
+    <header><LockKeyhole size={20}/><div><h2>付费工具</h2></div></header>
+    {!nativeTools()?<a className="button subtle" href="/liveai/downloads/liveai-latest.apk">打开 APP 付费工具</a>:!unlocked?<form onSubmit={unlock} className="paid-unlock-form"><label htmlFor="paid-password">付费解锁密码<input id="paid-password" type="password" autoComplete="current-password" maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} required placeholder="现有 LiveAI 访问密码"/></label><button className="button primary" disabled={unlocking||!password}>{unlocking?<LoaderCircle size={17} className="spin"/>:<Unlock size={17}/>}解锁付费模型</button></form>:<>
+      <div className="paid-unlocked"><span><Unlock size={16}/>已解锁</span><button className="button subtle" onClick={lock}>重新锁定</button></div>
       <form className="paid-operation-form" onSubmit={submit}>
-        <label htmlFor="paid-model">选择付费模型<select id="paid-model" value={model} onChange={e=>{setModel(e.target.value);setError('');setResult(null)}} disabled={busy}><option value="">请选择，默认不调用</option>{models.filter(m=>m.tier==='paid').map(m=><option key={m.id} value={m.id}>{m.name} · {m.price}</option>)}</select></label>
+        <label htmlFor="paid-model">选择付费模型<select id="paid-model" value={model} onChange={e=>{setModel(e.target.value);setError('');setResult(null)}} disabled={busy}><option value="">请选择模型</option>{models.filter(m=>m.tier==='paid').map(m=><option key={m.id} value={m.id}>{m.name} · {m.price}</option>)}</select></label>
         {item&&<p className="field-hint">{item.description} · {item.price}，实际以官网账单为准。</p>}
         {(speech||dialogue)&&<><label htmlFor="paid-voice">{dialogue?'角色 A 声音 ID':'声音 ID'}<input id="paid-voice" value={voice} onChange={e=>setVoice(e.target.value)} required list="paid-voices"/></label><button className="button subtle" type="button" onClick={loadVoices}>读取官网可用声音</button><datalist id="paid-voices">{voices.map(v=><option key={v.id} value={v.id}>{v.name||v.id}</option>)}</datalist></>}
         {dialogue&&<label htmlFor="second-voice">角色 B 声音 ID<input id="second-voice" value={secondVoice} onChange={e=>setSecondVoice(e.target.value)} required list="paid-voices"/></label>}
@@ -38,6 +38,6 @@ export default function PaidTools({unlocked}){
     </>}
     {error&&<p className="paid-error" role="alert">{error}</p>}
     {result&&<div className="paid-result"><h3>处理结果</h3>{result.audio_url?<><audio controls preload="metadata" src={result.audio_url}/><button className="button primary" onClick={()=>nativeShell()?.saveOutput?.(result.outputToken,'LiveAI-'+Date.now()+'.mp3')}><Download size={16}/>保存音频文件</button></>:<><pre>{result.text||JSON.stringify(result,null,2)}</pre><button className="button subtle" onClick={()=>download(result.text||JSON.stringify(result,null,2),'LiveAI-转写.txt')}><Download size={16}/>导出文字</button></>}</div>}
-    <p className="field-hint">余额不足、官网限流或网络失败会显示实际错误，不自动充值，也不自动重试收费任务。锁定后阻止新请求，已提交的任务继续处理。</p>
+
   </section>;
 }

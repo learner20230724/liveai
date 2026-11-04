@@ -44,7 +44,7 @@ public class LiveCallService extends Service {
     protected CallAudio createAudio(NativeAudio.Listener listener){return new NativeAudio(this,listener);}
     private void handle(JSONObject message){if(ending)return;String action=message.optString("action");JSONObject d=message.optJSONObject("data");if(d==null)d=new JSONObject();
         switch(action){
-            case "session_attached":session=d.optString("session_id");JSONObject persona=obj("name","LiveAI");put(persona,"prompt",prompt);JSONObject config=obj("persona",persona);put(config,"instructions","默认用简洁中文回答，除非用户要求其他语言。");JSONObject update=obj("action","session.update");put(update,"session",config);send(update);break;
+            case "session_attached":session=d.optString("session_id");JSONObject persona=obj("name","LiveAI");put(persona,"prompt",prompt);JSONObject config=obj("persona",persona);put(config,"instructions",prompt);JSONObject update=obj("action","session.update");put(update,"session",config);send(update);break;
             case "session.updated":if(!d.optString("error").isEmpty()){main.post(()->finish("MOSS 未能应用通话设置，请重试",true));return;}ready=true;reconnects=0;phase="listening";send(obj("action","media.mode","binary_protocol","tagged-v1"));send(obj("action","mic_state","enabled",!muted));if(camera)video(true);break;
             case "response.audio.context":contexts.add(d);break;
             case "response.audio.done":if(audio!=null)audio.done(d);break;

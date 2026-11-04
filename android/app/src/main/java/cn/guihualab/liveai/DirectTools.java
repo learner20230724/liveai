@@ -36,7 +36,9 @@ final class DirectTools {
     }
     private DirectTools(Context context){this(context,new SecureStore(context),new File(context.getFilesDir(),"tool-outputs"),null);}
     DirectTools(Context context,ToolValues values,File directory,MossHttp transport){this.context=context;store=values;outputs=directory;http=transport==null?new MossHttp(()->store.get("mossKey"),outputs):transport;
-        try{JSONArray previous=new JSONArray(store.get("imageJobs").isEmpty()?"[]":store.get("imageJobs"));for(int i=previous.length()-1;i>=0;i--){JSONObject j=previous.getJSONObject(i);JSONObject input=ToolPolicy.image(j);ImageJob job=new ImageJob(j.getString("id"),input,j.optLong("createdAt"));job.status=j.optString("status","failed");job.error=j.optString("error");job.data=j.optJSONObject("data");job.output=j.optString("outputToken");if(job.status.equals("running")||job.status.equals("queued")){job.status="failed";job.error="上次运行已中断，未自动重复提交；可手动重试。";}jobs.put(job.id,job);}}catch(Exception ignored){}
+        // Only realtime text history persists; generated files are session cache.
+        try{store.put("imageJobs","[]");}catch(Exception ignored){}
+        File[] oldOutputs=outputs.listFiles();if(oldOutputs!=null)for(File old:oldOutputs)if(old.isFile())old.delete();
     }
     int pending(){return work.get();}
     private void startWork(){context.startForegroundService(new Intent(context,ToolTaskService.class));work.incrementAndGet();}
@@ -75,7 +77,7 @@ final class DirectTools {
     synchronized void removeImage(String id){ImageJob job=jobs.get(id);if(job!=null&&!job.status.equals("queued")&&!job.status.equals("running")){jobs.remove(id);File output=file(job.output);if(output!=null)output.delete();changed();}}
     private synchronized void trim(){Iterator<ImageJob> it=jobs.values().iterator();while(jobs.size()>80&&it.hasNext()){ImageJob job=it.next();if(!job.status.equals("queued")&&!job.status.equals("running")){File old=file(job.output);if(old!=null)old.delete();it.remove();}}}
     synchronized JSONObject snapshot(){JSONArray list=new JSONArray();List<ImageJob> all=new ArrayList<>(jobs.values());Collections.reverse(all);for(ImageJob j:all)list.put(j.json());return object("images",list,"maxConcurrent",10,"providerConcurrency",imageLimiter.capacity(),"running",all.stream().filter(j->j.status.equals("running")).count(),"queued",all.stream().filter(j->j.status.equals("queued")).count(),"paidUnlocked",paid.allowed(),"paidRemainingMs",paid.remaining(),"direct",true,"stats",object("since",new Date(since).toInstant().toString(),"requests",requests.get(),"success",successful.get(),"failed",failed.get(),"images",all.stream().filter(j->j.status.equals("succeeded")).count(),"nativeDirect",true));}
-    private synchronized void changed(){JSONObject state=snapshot();String text=state.optJSONArray("images").toString();persistence.execute(()->{try{store.put("imageJobs",text);}catch(Exception e){CallEvents.emit(object("type","tool-warning","value","图片任务记录未能保存，请及时保存已生成图片。"));}});CallEvents.emit(object("type","tools","state",state));}
+    private synchronized void changed(){CallEvents.emit(object("type","tools","state",snapshot()));}
     void lockPaid(){paid.lock();CallEvents.emit(object("type","tools","state",snapshot()));}
     void request(String id,String operation,String payload){
         if(id==null||!id.matches("[A-Za-z0-9_-]{1,80}"))return;

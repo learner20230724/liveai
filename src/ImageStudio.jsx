@@ -18,8 +18,8 @@ export default function ImageStudio({onError,onNotice}){
       <label htmlFor="image-model">图像模型<select id="image-model" value={model} onChange={e=>setModel(e.target.value)}><option value="moss-image-sft-1.0">MOSS Image SFT · 免费</option><option value="moss-image-base-1.0">MOSS Image Base · 免费</option></select></label>
       <label htmlFor="image-size">画面比例<select id="image-size" value={size} onChange={e=>setSize(e.target.value)}><option value="1024x1024">1:1 · 1024 × 1024</option><option value="1024x1536">2:3 · 1024 × 1536</option><option value="1536x1024">3:2 · 1536 × 1024</option><option value="512x512">1:1 · 512 × 512</option></select></label>
       <button className="button primary wide" aria-label="生成图像" disabled={!prompt.trim()||running+queued>=100}><Plus size={19}/>生成图像</button>
-      <p className="field-hint">可连续点击，每次提交一张，最多 10 个同时生成；超过后排队。可以继续通话、选图或使用其他功能。</p>
-      <div className="image-queue-summary"><span>生成中 <strong>{running} / 10</strong></span><span>等待 <strong>{queued}</strong></span><span>无可见 AI 水印</span>{imageQueueInfo().effectiveLimit<10&&<span>官网限流，暂按 {imageQueueInfo().effectiveLimit} 路自动排队</span>}</div>
+
+      <div className="image-queue-summary"><span>生成中 <strong>{running} / 10</strong></span><span>等待 <strong>{queued}</strong></span>{imageQueueInfo().effectiveLimit<10&&<span>官网限流，暂按 {imageQueueInfo().effectiveLimit} 路自动排队</span>}</div>
       <div className="example-list"><strong>从一点灵感开始</strong>{[['文字海报','极简咖啡海报，奶油色背景，深绿色文字“慢一点，也很好”，自然光，精致排版。'],['江南水彩','雨后苏州小巷，青石板路映着暖色灯光，水彩插画，安静而有生活气息。'],['想象建筑','悬浮在云层中的玻璃温室，绿植茂盛，清晨阳光，电影感构图。']].map(([title,text])=><button type="button" key={title} onClick={()=>{setPrompt(text);save('imagePrompt',text)}}>{title}<Sparkles size={13}/></button>)}</div>
     </form>
     <section className="image-job-list" aria-label="图片任务队列" aria-live="polite">

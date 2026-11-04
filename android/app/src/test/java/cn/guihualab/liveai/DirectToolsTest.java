@@ -57,4 +57,9 @@ public class DirectToolsTest {
         try{tools.request("paid-blocked","voiceDesign",new JSONObject().put("model","moss-voice-generator-1.0").put("input","test").put("instruction","fixture voice").toString());for(int i=0;i<100&&tools.result("paid-blocked").isEmpty();i++)Thread.sleep(10);assertTrue(new JSONObject(tools.result("paid-blocked")).getString("error").contains("密码"));assertEquals(0,backend.requests.size());}finally{tools.shutdown();}
     }
 
+    @Test public void oldMediaCacheIsRemovedWithoutChangingRealtimeHistory() throws Exception {
+        Context context=RuntimeEnvironment.getApplication();File dir=Files.createTempDirectory("session-media").toFile();Files.write(new File(dir,"old.png").toPath(),new byte[]{1,2,3});Values values=new Values();values.put("imageJobs","[{\"id\":\"old\"}]");values.put("history","realtime text fixture");Backend backend=new Backend();DirectTools tools=new DirectTools(context,values,dir,new MossHttp(()->values.get("mossKey"),dir,backend));
+        try{assertEquals(0,tools.snapshot().getJSONArray("images").length());assertEquals("[]",values.get("imageJobs"));assertEquals("realtime text fixture",values.get("history"));assertFalse(new File(dir,"old.png").exists());assertEquals(0,backend.requests.size());}finally{tools.shutdown();}
+    }
+
 }

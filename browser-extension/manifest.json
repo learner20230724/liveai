@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "LiveAI 官网直连",
+  "version": "1.0.0",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "storage",
+    "declarativeNetRequestWithHostAccess",
+    "offscreen"
+  ],
+  "host_permissions": [
+    "*://api.mosi.cn/*",
+    "https://guihualab.cn/*",
+    "wss://api.mosi.cn/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://guihualab.cn/liveai/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

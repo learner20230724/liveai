@@ -6,6 +6,7 @@ root = pathlib.Path(__file__).resolve().parent.parent
 def run(args): subprocess.run(args,cwd=root,check=True)
 run(['npm','test'])
 run(['npm','run','build'])
+run(['python3','scripts/package-browser-extension.py'])
 stamp=datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
 base=pathlib.Path('/var/www/liveai'); release=base/'releases'/stamp
 release.mkdir(parents=True)

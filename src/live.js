@@ -1,5 +1,7 @@
 import { nativeShell } from "./native.js";
 import {AUDIO_QUEUE_LIMIT,VIDEO_QUEUE_LIMIT,VIDEO_FRAME_LIMIT,CONGESTION_TIMEOUT,encodeLiveFrame} from './live-upload.js';
+import {requireBrowserDirect} from './browser-direct.js';
+import {sessionConfiguration} from './conversation.js';
 export class LiveSession {
   constructor({ onState, onEvent, onError, onMedia, onLevel, onNetwork }) {
     Object.assign(this, { onState, onEvent, onError, onMedia, onLevel, onNetwork });
@@ -24,7 +26,7 @@ export class LiveSession {
     if(!this.ready||this.stopped||this.ws?.readyState!==WebSocket.OPEN)return false;
     if(this.ws.bufferedAmount+pcm.byteLength+1>AUDIO_QUEUE_LIMIT){
       this.droppedAudio++;this.network(true);if(this.congestedSince===null)this.congestedSince=now;
-      if(now-this.congestedSince>=CONGESTION_TIMEOUT)this.error('浏览器到本站的上传队列持续拥塞，已结束网页会话。请检查网络，或改用 APP 直连；此提示不能判定官网故障。');
+      if(now-this.congestedSince>=CONGESTION_TIMEOUT)this.error('到官网的上传持续拥塞，请检查网络后重试。');
       return false;
     }
     this.congestedSince=null;if(this.ws.bufferedAmount<VIDEO_QUEUE_LIMIT)this.network(false);
@@ -45,6 +47,7 @@ export class LiveSession {
     try {
       if (!navigator.mediaDevices?.getUserMedia)
         throw new Error("当前浏览器不支持麦克风，请使用 HTTPS 和新版浏览器。");
+      const endpoint=await requireBrowserDirect();
       this.audio = new AudioContext({ latencyHint: "interactive" });
       await this.audio.resume();
       await this.audio.audioWorklet.addModule("/liveai/pcm-capture.js");
@@ -74,8 +77,8 @@ export class LiveSession {
           this.onLevel(Math.min(1, Math.sqrt(sum / s.length) / 6000));
         }
       };
-      const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-      this.ws = new WebSocket(`${protocol}//${location.host}/liveai/api/live`);
+      this.ws = new WebSocket(endpoint);
+      this.ws.onopen=()=>this.send({action:"attach_session",memory_scope:"session"});
       this.ws.binaryType = "arraybuffer";
       this.timer = setTimeout(() => {
         if (!this.ready) this.error("连接超时，请检查网络后重试。");
@@ -117,10 +120,7 @@ export class LiveSession {
     if (a === "session_attached")
       this.send({
         action: "session.update",
-        session: {
-          persona: { name: "LiveAI", aliases: ["Live AI"], prompt },
-          instructions: "默认使用简洁自然的中文回答，用户要求其他语言时遵从。",
-        },
+        session: sessionConfiguration(prompt),
       });
     if (a === "session.updated") {
       if (d.error) {

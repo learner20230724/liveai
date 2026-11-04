@@ -37,8 +37,7 @@ export const models = [
     tier: "free",
     description: "图片与视频理解",
     price: "限时免费",
-    status: "unavailable",
-    note: "当前上游返回模型版本不存在；保留入口供恢复后重试。",
+    status: "verified",
   },
   {
     id: "moss-vl-realtime-1.0",

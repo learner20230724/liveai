@@ -2,9 +2,9 @@ import {ImageQueue} from './image-queue.js';
 import {post,read,save} from './workspace.js';
 import {nativeShell} from './native.js';
 import {nativeTools,getTools,subscribeTools,submitNativeImage,cancelNativeImage,removeNativeImage,toolRequest} from './native-tools.js';
-const restored=read('imageJobs',[]).map(j=>['running','queued'].includes(j.status)?{...j,status:'failed',error:'上次页面已关闭，未自动重复提交；可手动重试。'}:j);
-const web=new ImageQueue({run:(input,signal)=>post('/images',input,{signal}),initial:restored});
-web.subscribe(()=>{save('imageJobs',web.jobs.filter(j=>!['queued','running'].includes(j.status)).slice(0,60))});
+// Generated images are session-only; historical media are not restored.
+try{localStorage.removeItem('liveai.imageJobs')}catch{}
+const web=new ImageQueue({run:(input,signal)=>post('/images',input,{signal})});
 export const subscribeImages=fn=>nativeTools()?subscribeTools(fn):web.subscribe(fn);
 let empty=[];
 export function imageSnapshot(){return nativeTools()?(getTools().images||empty):web.getSnapshot()}

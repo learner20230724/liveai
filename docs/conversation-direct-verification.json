@@ -1,0 +1,107 @@
+{
+  "version": "3.1.0",
+  "nodeTests": 27,
+  "nativeDeviceTested": false,
+  "ownerPcNetworkTested": false,
+  "conversation": {
+    "simulatedProvider": true,
+    "threeChineseModes": true,
+    "distinctInstructionsTransmitted": true,
+    "longReplyCharacters": 6272,
+    "longReplySurvivesEmptyDone": true,
+    "scrollReachesLastLine": true,
+    "noHorizontalOverflow": true,
+    "onlyRealtimeTextHistory": true,
+    "staleVisionWarningRemoved": true,
+    "decorativeGreenDotRemoved": true,
+    "errors": []
+  },
+  "workspace": {
+    "nativeBridgeSimulated": true,
+    "providerResponsesSimulated": true,
+    "physicalDevice": false,
+    "continuousClicks": true,
+    "tenRunningTwoQueued": true,
+    "providerQuotaDisplayed": true,
+    "otherToolsDuringGeneration": true,
+    "passwordRequiredForPaid": true,
+    "noAutomaticPaidRequest": true,
+    "explicitPaidAction": true,
+    "freeImageDefault": true,
+    "nativeAlbumSaveNoBrowserPopup": true,
+    "nativeAudioSave": true,
+    "nativeCallRetained": true,
+    "historyExport": true,
+    "desktopCompatibility": true,
+    "noHubApiRequests": true,
+    "horizontalOverflow": false,
+    "errors": []
+  },
+  "extensionFixture": {
+    "actualChromeExtension": true,
+    "providerSimulated": true,
+    "physicalDevice": false,
+    "encryptedProvisioning": true,
+    "pageHasNoPlaintextKey": true,
+    "scopedWebSocketHeaders": true,
+    "noHubAiRequests": true,
+    "errors": []
+  },
+  "realProvider": {
+    "actualExtension": true,
+    "actualProvider": true,
+    "syntheticMedia": true,
+    "physicalDevice": false,
+    "endpoint": "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0",
+    "responseCompleted": true,
+    "counts": {
+      "audio": 706,
+      "camera": 13,
+      "screen": 13
+    },
+    "noHubAiRequests": true,
+    "visionCompleted": true,
+    "visionResultCharacters": 212,
+    "errors": [],
+    "freeImageGenerationCompleted": true
+  },
+  "publicWebsite": {
+    "publicProduction": true,
+    "staticAssetsOverridden": false,
+    "actualExtension": true,
+    "realProvider": true,
+    "syntheticMedia": true,
+    "physicalDevice": false,
+    "completed": true,
+    "counts": {
+      "audio": 698,
+      "camera": 14,
+      "screen": 14
+    },
+    "endpoints": [
+      "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0"
+    ],
+    "retiredRelayReturns410": true,
+    "errors": []
+  },
+  "publicOta": {
+    "version": "3.1.0",
+    "channel": "liveai-stable",
+    "sha256": "6a50c848472b9b3fce0a8ce41ed9419c27bb8cb923bb0410149397bee50cf88b",
+    "size": 111027,
+    "minShellVersion": 1,
+    "publishedAt": "2026-11-04T17:08:18.378735+00:00",
+    "digestVerified": true,
+    "matchesBuiltResources": true
+  },
+  "apk": {
+    "packageName": "cn.guihualab.liveai",
+    "versionCode": 5,
+    "versionName": "3.1.0",
+    "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a",
+    "sha256": "c52e2553c86f1d7f37dc017103730c950cbd43a657f45bb10331eb9bc5b3d18c",
+    "size": 1197918,
+    "downloadUrl": "https://guihualab.cn/liveai/downloads/liveai-android-3.1.0.apk"
+  },
+  "androidUnitTests": 25
+}

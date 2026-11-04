@@ -8,7 +8,8 @@ try{
   await page.route('https://liveai.test/check/**',async route=>{
     const file=new URL(route.request().url()).pathname.slice('/check/'.length);
     if(!file)return route.fulfill({contentType:'text/html',body:'<!doctype html><html><body>synthetic media check</body></html>'});
-    if(!['live.js','live-upload.js','native.js'].includes(file))return route.abort();
+    if(file==='browser-direct.js')return route.fulfill({contentType:'text/javascript',body:'export const requireBrowserDirect=async()=>"wss://api.mosi.cn/v1/realtime?model=moss-live-1.0"'});
+    if(!['conversation.js','live.js','live-upload.js','native.js'].includes(file))return route.abort();
     return route.fulfill({contentType:'text/javascript',body:await readFile(new URL('../src/'+file,import.meta.url))});
   });
   await page.goto('https://liveai.test/check/');
