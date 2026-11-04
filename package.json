@@ -1,6 +1,6 @@
 {
   "name": "liveai",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -12,7 +12,8 @@
     "deploy:web": "python3 scripts/deploy.py",
     "build:apk": "bash scripts/build-apk.sh",
     "test:android": "./android/gradlew -p android :app:testDebugUnitTest --offline --console=plain",
-    "publish:apk": "python3 scripts/publish-apk.py"
+    "publish:apk": "python3 scripts/publish-apk.py",
+    "test:ui": "npm run build && node scripts/check-parallel-tools.mjs"
   },
   "dependencies": {
     "express": "^5.1.0",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.4",
-    "vite": "^6.4.2"
+    "vite": "^6.4.2",
+    "playwright": "1.63.0"
   }
 }

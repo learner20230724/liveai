@@ -45,6 +45,7 @@ final class DeviceProvisioning {
         Cipher cipher=Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");cipher.init(Cipher.DECRYPT_MODE,pair.getPrivate(),new OAEPParameterSpec("SHA-256","MGF1",MGF1ParameterSpec.SHA256,PSource.PSpecified.DEFAULT));String secret=new String(cipher.doFinal(Base64.decode(response.getString("encryptedKey"),Base64.NO_WRAP)),StandardCharsets.UTF_8);
         if(!secret.startsWith("sk-")||secret.length()<20)throw new IOException("通话配置无效");store.put("mossKey",secret);
     }
+    static void unlockPaid(String password) throws Exception {if(!post("paid/unlock",new JSONObject().put("password",password)).optBoolean("unlocked"))throw new IOException("未能解锁付费模型");}
     static boolean prepare(SecureStore store) throws Exception {
         if(!store.get("mossKey").isEmpty())return true;
         String password=store.get("password");if(!password.isEmpty()){loginAndConfigure(store,password,true);return true;}

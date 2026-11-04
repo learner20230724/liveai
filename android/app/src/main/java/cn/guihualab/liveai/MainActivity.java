@@ -39,7 +39,8 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
     private CameraFrames cameraFrames;
     private boolean frontCamera, pendingCamera, pendingNativeStart;
     private String nativePrompt="";
-    private static final int CALL_PERMISSION=31, CAMERA_PERMISSION=32;
+    private static final int CALL_PERMISSION=31, CAMERA_PERMISSION=32, GALLERY_PERMISSION=33, SAVE_BINARY=23;
+    private String galleryRequestId,galleryPayload,pendingOutput;
     private final Handler startup = new Handler(Looper.getMainLooper());
     private final ExecutorService files = Executors.newSingleThreadExecutor();
 
@@ -74,6 +75,10 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         root.addView(loading,new FrameLayout.LayoutParams(-1,-1));
         web.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                if(NavigationPolicy.ownOrigin(request.getUrl().toString())&&request.getUrl().getPath()!=null&&request.getUrl().getPath().startsWith("/liveai/native-output/")&&(request.getMethod().equals("GET")||request.getMethod().equals("HEAD"))){
+                    try{File output=DirectTools.get(MainActivity.this).file(request.getUrl().getLastPathSegment());if(output!=null){String range=null;for(Map.Entry<String,String> header:request.getRequestHeaders().entrySet())if(header.getKey().equalsIgnoreCase("Range"))range=header.getValue();return NativeOutputResponse.open(output,range,request.getMethod().equals("HEAD"));}}catch(Exception ignored){}
+                    return new WebResourceResponse("text/plain","UTF-8",404,"Not found",Collections.emptyMap(),new ByteArrayInputStream(new byte[0]));
+                }
                 String relative = NavigationPolicy.asset(request.getUrl().toString(), request.getMethod());
                 if (relative == null) return null;
                 try {
@@ -111,7 +116,8 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
                 if (!trusted()) { callback.onReceiveValue(null); return true; }
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback; selectingFile = true;
-                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*");
+                String[] accepted=Arrays.stream(params.getAcceptTypes()).filter(t->t!=null&&t.matches("[A-Za-z0-9.*+-]+/[A-Za-z0-9.*+-]+")).toArray(String[]::new);
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(accepted.length==1?accepted[0]:"*/*");if(accepted.length>1)intent.putExtra(Intent.EXTRA_MIME_TYPES,accepted);
                 try { startActivityForResult(intent,OPEN_FILE); } catch (RuntimeException e) { selectingFile=false; fileCallback.onReceiveValue(null); fileCallback=null; toast("无法打开系统选图。"); }
                 return true;
             }
@@ -165,11 +171,24 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         super.onRequestPermissionsResult(requestCode,permissions,results);
         if (requestCode==MEDIA_PERMISSION) grantMedia();
         if(requestCode==CALL_PERMISSION){if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED){pendingNativeStart=true;if(resumed)startNativeCall();}else event(message("error","请在系统设置允许 LiveAI 使用麦克风"));}
+        if(requestCode==GALLERY_PERMISSION&&galleryRequestId!=null){String id=galleryRequestId,payload=galleryPayload;galleryRequestId=null;galleryPayload=null;if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)==PackageManager.PERMISSION_GRANTED)DirectTools.get(this).request(id,"saveImage",payload);else DirectTools.get(this).failRequest(id,"未获得相册保存权限，请在设置中允许后重试");}
         if(requestCode==CAMERA_PERMISSION&&checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED){pendingCamera=true;if(resumed)startCamera();}
     }
     public final class Bridge {
         @JavascriptInterface public void ready() { runOnUiThread(() -> { if (!trusted()) return; pageReady=true; startup.removeCallbacksAndMessages(null); WebUpdates.ready(MainActivity.this); loading.setVisibility(View.GONE); }); }
         @JavascriptInterface public int shellVersion() { return BuildConfig.VERSION_CODE; }
+        @JavascriptInterface public int toolsVersion() { return 1; }
+        @JavascriptInterface public String toolState() { return trusted()?DirectTools.get(MainActivity.this).snapshot().toString():"{}"; }
+        @JavascriptInterface public String toolResult(String id) { return trusted()?DirectTools.get(MainActivity.this).result(id):""; }
+        @JavascriptInterface public String submitImage(String payload) {if(!trusted())return "{}";try{return DirectTools.object("ok",true,"id",DirectTools.get(MainActivity.this).submitImage(payload)).toString();}catch(Exception e){return DirectTools.object("ok",false,"error",e.getMessage()).toString();}}
+        @JavascriptInterface public void cancelImage(String id) {if(trusted())DirectTools.get(MainActivity.this).cancelImage(id);}
+        @JavascriptInterface public void removeImage(String id) {if(trusted())DirectTools.get(MainActivity.this).removeImage(id);}
+        @JavascriptInterface public void requestTool(String id,String operation,String payload) {if(!trusted()||payload==null||payload.length()>30*1024*1024)return;runOnUiThread(()->{
+            if(!trusted())return;
+            if(operation.equals("saveImage")&&Build.VERSION.SDK_INT<29&&checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)!=PackageManager.PERMISSION_GRANTED){if(galleryRequestId!=null){DirectTools.get(MainActivity.this).failRequest(id,"请先完成相册权限确认");return;}galleryRequestId=id;galleryPayload=payload;requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},GALLERY_PERMISSION);return;}
+            DirectTools.get(MainActivity.this).request(id,operation,payload);
+        });}
+        @JavascriptInterface public void saveOutput(String token,String filename) {runOnUiThread(()->{if(!trusted()||DirectTools.get(MainActivity.this).file(token)==null)return;if(pendingOutput!=null){toast("请先完成上次保存");return;}pendingOutput=token;String safe=filename==null?"LiveAI.mp3":filename.replaceAll("[\\\\/\\p{Cntrl}]","_");try{startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("audio/mpeg").putExtra(Intent.EXTRA_TITLE,safe),SAVE_BINARY);}catch(RuntimeException e){pendingOutput=null;toast("无法打开文件保存窗口");}});}
         @JavascriptInterface public int directVersion() { return 1; }
         @JavascriptInterface public String callState() { return LiveCallService.snapshot(); }
         @JavascriptInterface public String history() { if(!trusted())return "[]";String value=new SecureStore(MainActivity.this).get("history");return value.isEmpty()?"[]":value; }
@@ -179,7 +198,7 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         @JavascriptInterface public void prepareDirect() { if(!trusted())return;files.execute(()->{try{boolean ready=DeviceProvisioning.prepare(new SecureStore(MainActivity.this));event(message("configured",ready?"ready":"login"));}catch(Exception e){event(message("error","无法读取通话配置，请检查网络后重试"));}}); }
         @JavascriptInterface public void configureDirect(String password,boolean remember) { if(!trusted())return;files.execute(()->{try{DeviceProvisioning.loginAndConfigure(new SecureStore(MainActivity.this),password,remember);event(message("configured","ready"));}catch(Exception e){event(message("error",e.getMessage()==null?"登录失败，请重试":e.getMessage()));}}); }
         @JavascriptInterface public void refreshDirect() { if(!trusted())return;files.execute(()->{try{SecureStore store=new SecureStore(MainActivity.this);String password=store.get("password");if(password.isEmpty())DeviceProvisioning.configure(store);else DeviceProvisioning.loginAndConfigure(store,password,true);event(message("configured","ready"));}catch(Exception e){event(message("error","配置刷新失败，请重新输入访问密码"));}}); }
-        @JavascriptInterface public void forgetDirect() { if(!trusted())return;runOnUiThread(()->{closeCamera();LiveCallService.end();new SecureStore(MainActivity.this).clearCredentials();CookieManager.getInstance().setCookie(NavigationPolicy.HOME,"liveai_session=; Path=/liveai/; Max-Age=0; Secure; HttpOnly");CookieManager.getInstance().flush();event(message("configured","login"));}); }
+        @JavascriptInterface public void forgetDirect() { if(!trusted())return;runOnUiThread(()->{closeCamera();LiveCallService.end();DirectTools.get(MainActivity.this).lockPaid();new SecureStore(MainActivity.this).clearCredentials();CookieManager.getInstance().setCookie(NavigationPolicy.HOME,"liveai_session=; Path=/liveai/; Max-Age=0; Secure; HttpOnly");CookieManager.getInstance().flush();event(message("configured","login"));}); }
         @JavascriptInterface public void startCall(String prompt) { runOnUiThread(()->{if(trusted()&&resumed)requestNativeCall(prompt);}); }
         @JavascriptInterface public void endCall() { runOnUiThread(()->{if(!trusted())return;closeCamera();LiveCallService.end();}); }
         @JavascriptInterface public void muteCall(boolean muted) { if(trusted())LiveCallService.mute(muted); }
@@ -213,6 +232,7 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data) {
         super.onActivityResult(requestCode,resultCode,data); selectingFile=false;
         if (requestCode==OPEN_FILE && fileCallback!=null) { ValueCallback<Uri[]> callback=fileCallback;fileCallback=null;callback.onReceiveValue(resultCode==RESULT_OK && data!=null && data.getData()!=null?new Uri[]{data.getData()}:null); }
+        if(requestCode==SAVE_BINARY){String token=pendingOutput;pendingOutput=null;File source=DirectTools.get(this).file(token);if(resultCode==RESULT_OK&&data!=null&&data.getData()!=null&&source!=null){Uri uri=data.getData();files.execute(()->{try(InputStream in=new FileInputStream(source);OutputStream out=getContentResolver().openOutputStream(uri,"w")){if(out==null)throw new IOException();MossHttp.copy(in,out,100L*1024*1024);runOnUiThread(()->toast("音频已保存"));}catch(Exception e){runOnUiThread(()->toast("音频保存失败，请重试"));}});}}
         if (requestCode==SAVE_TEXT) {
             String text=pendingText; pendingText=null;
             if (resultCode!=RESULT_OK || data==null || data.getData()==null || text==null) return;

@@ -1,4 +1,4 @@
-export const verifiedAt = "2026-11-03";
+export const verifiedAt = "2026-11-04";
 export const models = [
   {
     id: "moss-live-1.0",
@@ -8,7 +8,7 @@ export const models = [
     description: "实时语音对话 · 摄像头 · 屏幕共享",
     price: "限时免费",
     status: "verified",
-    note: "已验证真实语音回答、播放确认和摄像头传输；设备权限由浏览器控制。",
+    note: "已验证真实语音回答、播放确认和摄像头传输；APP 原生直连，需设备授权。",
   },
   {
     id: "moss-image-sft-1.0",
@@ -27,8 +27,8 @@ export const models = [
     tier: "free",
     description: "基础图像创作 · 自由探索",
     price: "限时免费",
-    status: "documented",
-    note: "官方限时免费目录，尚未单独生成验证。",
+    status: "verified",
+    note: "已验证官方直连生成、原图下载和关闭可见水印。",
   },
   {
     id: "moss-vl-1.0",

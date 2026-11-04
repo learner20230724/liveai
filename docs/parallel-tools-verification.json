@@ -1,0 +1,202 @@
+{
+  "browserRegression": {
+    "nativeBridgeSimulated": true,
+    "providerResponsesSimulated": true,
+    "physicalDevice": false,
+    "continuousClicks": true,
+    "tenRunningTwoQueued": true,
+    "providerQuotaDisplayed": true,
+    "otherToolsDuringGeneration": true,
+    "passwordRequiredForPaid": true,
+    "noAutomaticPaidRequest": true,
+    "explicitPaidAction": true,
+    "freeImageDefault": true,
+    "nativeAlbumSaveNoBrowserPopup": true,
+    "nativeAudioSave": true,
+    "nativeCallRetained": true,
+    "historyExport": true,
+    "desktopCompatibility": true,
+    "noHubApiRequests": true,
+    "horizontalOverflow": false,
+    "errors": []
+  },
+  "initialRealProviderBurst": {
+    "physicalDevice": false,
+    "peakSimultaneousRequests": 10,
+    "realProvider": true,
+    "nativeProductionHttpClass": true,
+    "paidInferenceRequests": 0,
+    "results": [
+      {
+        "index": 0,
+        "ok": false,
+        "error": "MOSS 429：concurrency_limit_exceeded"
+      },
+      {
+        "index": 1,
+        "ok": false,
+        "error": "MOSS 429：concurrency_limit_exceeded"
+      },
+      {
+        "outputFile": "ecce0cc9-92c8-45c8-b45b-6dd29307799a.png",
+        "milliseconds": 9509,
+        "watermarkRequested": false,
+        "index": 2,
+        "model": "moss-image-sft-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "index": 3,
+        "ok": false,
+        "error": "MOSS 429：concurrency_limit_exceeded"
+      },
+      {
+        "outputFile": "5d49a344-3439-42b8-9dac-6d04fa69f510.png",
+        "milliseconds": 9599,
+        "watermarkRequested": false,
+        "index": 4,
+        "model": "moss-image-sft-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "index": 5,
+        "ok": false,
+        "error": "MOSS 429：concurrency_limit_exceeded"
+      },
+      {
+        "index": 6,
+        "ok": false,
+        "error": "MOSS 429：concurrency_limit_exceeded"
+      },
+      {
+        "index": 7,
+        "ok": false,
+        "error": "MOSS 429：concurrency_limit_exceeded"
+      },
+      {
+        "index": 8,
+        "ok": false,
+        "error": "MOSS 429：concurrency_limit_exceeded"
+      },
+      {
+        "outputFile": "3a9c885b-7fed-4e6f-be66-1e90fb2bcd0b.png",
+        "milliseconds": 10454,
+        "watermarkRequested": false,
+        "index": 9,
+        "model": "moss-image-base-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      }
+    ],
+    "succeeded": 3
+  },
+  "adaptiveRealProviderRun": {
+    "physicalDevice": false,
+    "peakWorkerTasks": 10,
+    "realProvider": true,
+    "adaptedProviderWindow": 3,
+    "nativeProductionHttpClass": true,
+    "paidInferenceRequests": 0,
+    "results": [
+      {
+        "outputFile": "70fb4632-ca67-4b32-915b-ebf79d20b9ab.png",
+        "milliseconds": 9356,
+        "watermarkRequested": false,
+        "index": 0,
+        "model": "moss-image-sft-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "6da72d56-f1b1-4190-8207-3cd82cb23a4b.png",
+        "milliseconds": 25129,
+        "watermarkRequested": false,
+        "index": 1,
+        "model": "moss-image-base-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "515c55ce-bd88-484c-9e89-bc4f15953f89.png",
+        "milliseconds": 16757,
+        "watermarkRequested": false,
+        "index": 2,
+        "model": "moss-image-sft-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "164fe2b0-6d44-460a-b0d3-047ee0ef89f7.png",
+        "milliseconds": 31946,
+        "watermarkRequested": false,
+        "index": 3,
+        "model": "moss-image-base-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "11b7f67b-9b85-4165-b29b-293aa766c92f.png",
+        "milliseconds": 8795,
+        "watermarkRequested": false,
+        "index": 4,
+        "model": "moss-image-sft-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "f04953c1-a71a-4039-9975-65177d97f70e.png",
+        "milliseconds": 24538,
+        "watermarkRequested": false,
+        "index": 5,
+        "model": "moss-image-base-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "afb71537-3673-48a1-984f-018ccaa217a4.png",
+        "milliseconds": 9182,
+        "watermarkRequested": false,
+        "index": 6,
+        "model": "moss-image-sft-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "36a7f177-2280-4a73-a770-03d9bcf73770.png",
+        "milliseconds": 17196,
+        "watermarkRequested": false,
+        "index": 7,
+        "model": "moss-image-base-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "1e746eb5-3f38-4276-a771-bb0c921ed4eb.png",
+        "milliseconds": 16579,
+        "watermarkRequested": false,
+        "index": 8,
+        "model": "moss-image-sft-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      },
+      {
+        "outputFile": "02503579-beb8-480c-a913-9ee8af3543e4.png",
+        "milliseconds": 24966,
+        "watermarkRequested": false,
+        "index": 9,
+        "model": "moss-image-base-1.0",
+        "ok": true,
+        "outputBytes": 787976
+      }
+    ],
+    "explicitConcurrencyRejections": 7,
+    "succeeded": 10
+  },
+  "nativeTests": 24,
+  "nodeTests": 19,
+  "newApkRequired": true,
+  "paidInferenceRequests": 0,
+  "galleryVerification": "Robolectric MediaStore primary-volume/byte-copy/pending/cleanup tests; no physical device"
+}

@@ -17,9 +17,11 @@ before(async () => {
   temp = await mkdtemp(join(tmpdir(), "liveai-test-"));
   keyPath = join(temp, "key");
   await writeFile(keyPath, "test-only-secret-key");
-  auth = http.createServer((req, res) => {
+  auth = http.createServer(async (req, res) => {
     res.setHeader("Content-Type", "application/json");
     if (req.url === "/api/share/login") {
+      let raw="";for await (const chunk of req)raw+=chunk;
+      if(!["synthetic-test-password","paid-test-password"].includes(JSON.parse(raw||"{}").password)){res.statusCode=403;res.end('{"authenticated":false}');return;}
       res.setHeader(
         "Set-Cookie",
         `guihua_share=${token}; Path=/api/share; HttpOnly; SameSite=Strict; Secure`,
@@ -202,4 +204,11 @@ test("WebSocket rejects missing auth and foreign Origin before upstream", async 
     });
     assert.ok([401, 403].includes(code));
   }
+});
+
+test("paid unlock checks the password without starting any provider operation",async()=>{
+  const wrong=await fetch(url+"/api/paid/unlock",{method:"POST",headers,body:JSON.stringify({password:"wrong-fixture"})});assert.equal(wrong.status,403);
+  const good=await fetch(url+"/api/paid/unlock",{method:"POST",headers,body:JSON.stringify({password:"paid-test-password"})});assert.equal(good.status,200);const data=await good.json();assert.equal(data.unlocked,true);assert.equal(data.nativeDirectRequired,true);assert.equal(data.expiresIn,1800);
+  const foreign=await fetch(url+"/api/paid/unlock",{method:"POST",headers:{...headers,Origin:"https://foreign.example"},body:JSON.stringify({password:"paid-test-password"})});assert.equal(foreign.status,403);
+  const stats=await (await fetch(url+"/api/stats",{headers})).json();assert.equal(stats.requests,0);
 });

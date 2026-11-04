@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {ArrowRight, RefreshCw} from 'lucide-react';
 import {api} from './workspace.js';
 import {nativeShell} from './native.js';
+import {nativeTools} from './native-tools.js';
 import {ImageStudio, VisionStudio, Models} from './WorkspaceTools.jsx';
 
 // Kept mounted across tabs so uploads, image results and in-flight work survive.
@@ -37,13 +38,14 @@ export default function MobileWorkspace({section, onError, onNotice}) {
     window.addEventListener('liveai:native',event);check(true);
     return()=>{alive.current=false;window.removeEventListener('liveai:native',event)};
   },[]);
-  const details={images:['图像工作室','选择模型与比例，把想法变成画面。'],vision:['视觉理解','上传图片，提取文字、识别物品或描述场景。'],models:['模型与费用','免费、付费独立展示，付费调用保持关闭。']}[section];
+  const details={images:['图像工作室','选择模型与比例，把想法变成画面。'],vision:['视觉理解','上传图片，提取文字、识别物品或描述场景。'],models:['模型与费用','默认免费；付费模型需单独输入密码解锁。']}[section];
   function unlock(e){e.preventDefault();setFailure('');setBusy(true);attempted.current=true;nativeShell()?.configureDirect?.(password,remember);}
   return <div className="mobile-workspace">
     {details&&<header className="mobile-page-heading"><h1>{details[0]}</h1><p>{details[1]}</p></header>}
+    {!nativeTools()&&<p className="native-upgrade-note">完整直连、10 路并发与相册保存需要 APP 3.0。<a href="/liveai/downloads/liveai-latest.apk">下载新版 APP</a></p>}
     {auth!==true&&<section className="mobile-tool-login">
       <h2>{auth===null?'正在读取工具配置':'解锁工具工作台'}</h2>
-      <p>图像和模型工具使用规划 Lab 服务，实时通话继续直连 MOSS。</p>
+      <p>{nativeTools()?'全部 AI 工具由手机直接连接 MOSS 官网。':'APP 3.0 支持全部 AI 工具直连 MOSS。'}</p>
       {failure&&<p role="alert" className="mobile-tool-error">{failure}</p>}
       {auth===null||busy?<p className="mobile-tool-loading"><RefreshCw size={17} className="spin"/>正在连接工具服务…</p>:<form onSubmit={unlock}>
         <label htmlFor="tool-password">访问密码<input id="tool-password" type="password" autoComplete="current-password" maxLength={128} value={password} onChange={e=>setPassword(e.target.value)} required/></label>

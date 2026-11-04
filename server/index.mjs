@@ -10,9 +10,10 @@ import {
   existsSync,
 } from "node:fs";
 import { resolve, join } from "node:path";
-import { createHash, createPublicKey, publicEncrypt, constants as cryptoConstants } from "node:crypto";
+import { createHash, createPublicKey, publicEncrypt, randomInt, constants as cryptoConstants } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { models, selectModel, verifiedAt } from "./catalog.mjs";
+import { createPermitPool } from "./concurrency.mjs";
 import { authRequest } from "./auth-client.mjs";
 
 const here = resolve(fileURLToPath(new URL("..", import.meta.url)));
@@ -84,7 +85,7 @@ async function call(path, body, session, asForm = false) {
         ...(!asForm ? { "Content-Type": "application/json" } : {}),
       },
       body: asForm ? body : JSON.stringify(body),
-      signal: AbortSignal.timeout(150000),
+      signal: AbortSignal.timeout(path === "/images/generations" ? 900000 : 150000),
     });
     const data = await r.json();
     if (!r.ok)
@@ -185,6 +186,15 @@ for (const action of ["login", "logout"])
       next(e);
     }
   });
+app.post("/api/paid/unlock", async (req,res,next) => {
+  try {
+    if (typeof req.body?.password !== "string" || !req.body.password || req.body.password.length > 128) throw fail(400,"请输入访问密码。");
+    const result = await authRequest(authBase,"/api/share/login",{method:"POST",headers:{"Content-Type":"application/json","X-Real-IP":req.headers["x-real-ip"] || req.socket.remoteAddress},body:JSON.stringify({password:req.body.password}),timeoutMs:6000});
+    if (result.status!==200 || result.data.authenticated!==true) return res.status(result.status===429?429:403).json({error:"访问密码不正确，未解锁付费能力。",code:"PAID_PASSWORD_REQUIRED"});
+    if(result.setCookie)res.setHeader("Set-Cookie",result.setCookie.replace(/^guihua_share=/,"liveai_session=").replace("Path=/api/share","Path=/liveai/"));
+    res.json({unlocked:true,expiresIn:1800,nativeDirectRequired:true});
+  } catch(e){next(e);}
+});
 app.use("/api", async (req, res, next) => {
   try {
     if (!(await authenticated(req)))
@@ -221,16 +231,19 @@ app.post("/api/mobile/bootstrap", (req, res) => {
     res.json({ encryptedKey, endpoint: "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0", model: "moss-live-1.0" });
   } catch { res.status(400).json({ error: "设备配置请求无效，请重试。" }); }
 });
-const active = new Map();
-function acquire(req, res, next) {
-  const id = sessionId(req);
-  if (active.has(id))
-    return res.status(429).json({ error: "已有任务正在进行，请等待完成。" });
-  active.set(id, Date.now());
-  res.on("close", () => active.delete(id));
-  next();
+function limitJobs(pool) {
+  return (req, res, next) => {
+    const release = pool.acquire(sessionId(req));
+    if (!release) return res.status(429).json({error:"已达到并发上限，请等待当前任务完成。",code:"CONCURRENCY_LIMIT"});
+    // Keep the permit until upstream work has actually finished, even if the
+    // browser disconnects. Releasing on close would allow bypassing the cap.
+    res.once("finish",release);res.once("close",()=>{if(!res.locals.upstreamPending)release();}); res.locals.releasePermit = release; next();
+  };
 }
-app.post("/api/images", acquire, async (req, res, next) => {
+const imagePermit = limitJobs(createPermitPool(10));
+const visionPermit = limitJobs(createPermitPool(4));
+app.post("/api/images", imagePermit, async (req, res, next) => {
+  res.locals.upstreamPending=true;
   try {
     const model = selectModel(req.body?.model, "image", paid);
     const size = req.body.size || "1024x1024";
@@ -244,15 +257,17 @@ app.post("/api/images", acquire, async (req, res, next) => {
           prompt: text(req.body.prompt),
           size,
           n: 1,
+          seed: randomInt(281474976710655),
           response_format: "url",
           prompt_enhance: false,
+          output_watermark: { enabled: false },
         },
         sessionId(req),
       ),
     );
   } catch (e) {
     next(e);
-  }
+  } finally { res.locals.releasePermit?.(); }
 });
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -260,9 +275,10 @@ const upload = multer({
 });
 app.post(
   "/api/vision",
-  acquire,
+  visionPermit,
   upload.single("file"),
   async (req, res, next) => {
+    res.locals.upstreamPending=true;
     try {
       const model = selectModel("moss-vl-1.0", "vision", paid);
       const prompt = text(req.body?.prompt);
@@ -308,7 +324,7 @@ app.post(
       }
     } catch (e) {
       next(e);
-    }
+    } finally { res.locals.releasePermit?.(); }
   },
 );
 // Paid endpoints are blocked before parsing uploads or making any upstream request.

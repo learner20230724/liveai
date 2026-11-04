@@ -1,11 +1,10 @@
 {
   "shell": {
     "packageName": "cn.guihualab.liveai",
-    "versionCode": 3,
-    "versionName": "2.0.0",
+    "versionCode": 4,
+    "versionName": "3.0.0",
     "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a"
   },
-  "webVersion": "2.0.0",
   "nativeTests": [
     {
       "name": "cn.guihualab.liveai.WebUpdatesTest",
@@ -32,7 +31,19 @@
       "errors": 0
     },
     {
+      "name": "cn.guihualab.liveai.GallerySaveTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0
+    },
+    {
       "name": "cn.guihualab.liveai.UpdateBundleTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "cn.guihualab.liveai.DirectToolsTest",
       "tests": 3,
       "failures": 0,
       "errors": 0
@@ -42,80 +53,58 @@
       "tests": 3,
       "failures": 0,
       "errors": 0
+    },
+    {
+      "name": "cn.guihualab.liveai.ToolPolicyTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0
     }
   ],
-  "lintRelease": "passed; warnings retained",
-  "apkSha256": "359b40379d0bb31cd6d7a07b6390600d89acc99abd76ffa74cc101d4c3e135d8",
-  "apkBytes": 1173342,
-  "otaSha256": "ea6a7f34905f3b11668829aa37e8551c49b820c186397267b687e12466695f2a",
-  "otaBytes": 101458,
-  "apkAndOtaAssetsMatch": true,
+  "nodeTests": 19,
+  "lintRelease": "passed; no errors",
+  "apkBytes": 1197918,
+  "apkSha256": "206e41cd3186b1abfbb22938ff4782323ff11c7aeb0e7c3baf87fea7c10f913d",
   "abiLibraries": [],
-  "secretScan": "passed: no configured credential, owner password, signing materials or .so files",
+  "secretScan": "passed",
   "physicalDevices": [],
-  "productionProvisioning": {
-    "productionLogin": true,
-    "encryptedProvision": true,
-    "decryptedMatchesConfiguredKey": true,
-    "noPlaintextCredentialInResponse": true,
-    "anonymousStatus": 401,
-    "foreignOriginStatus": 403,
+  "ota": {
+    "manifest": {
+      "version": "3.0.0",
+      "channel": "liveai-stable",
+      "sha256": "eeadd28cdbbd4de32697b9e66bf728b17edf1866c4db8c9b7a2fdf52fa8c7ddf",
+      "size": 109825,
+      "minShellVersion": 1,
+      "publishedAt": "2026-11-04T11:51:55.549212+00:00"
+    },
+    "sha256Verified": true,
+    "apkAndOtaAssetsMatch": true
+  },
+  "publicAuth": {
+    "version": "3.0.0",
+    "actualProductionLogin": true,
+    "wrongPasswordStatus": 403,
+    "paidUnlockStatus": 200,
+    "paidUnlockSeconds": 1800,
+    "encryptedNativeProvisioning": true,
+    "noPlaintextKeyInConfig": true,
+    "unlockProviderRequestCountDelta": 0,
     "externalEntryStatus": 200,
-    "serviceVersion": "2.0.0"
-  },
-  "nativeDirectVoice": {
-    "output": "I'm Xiaojiu, your voice assistant — I can look things up, answer questions, and help you get stuff done.",
-    "input": "Please introduce yourself in one short sentence.",
-    "physicalDevice": false,
-    "responseCompleted": true,
-    "chunks": 71,
-    "acks": 71,
-    "playbackTimingSimulated": true,
-    "nativeProductionTransport": true,
-    "error": "",
-    "directEndpoint": "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0",
-    "syntheticInput": true
-  },
-  "nativeDirectCamera": {
-    "physicalDevice": false,
-    "chunks": 17,
-    "acks": 17,
-    "nativeProductionTransport": true,
-    "jpegSize": 6546,
-    "error": "",
-    "output": "The word is \"HELLO\".",
-    "maxQueuedBytes": 6743,
-    "input": "Please answer briefly.",
-    "responseCompleted": true,
-    "videoFrames": 9,
-    "playbackTimingSimulated": true,
-    "directEndpoint": "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0",
-    "syntheticInput": true
-  },
-  "mobileUiSimulation": {
-    "simulatedNativeBridge": true,
-    "realDevice": false,
-    "login": true,
-    "rememberedPreference": true,
-    "actualInputDisplay": true,
-    "routeSelection": true,
-    "callEnd": true,
-    "historyExport": true,
-    "overflow": false,
-    "errors": []
+    "foreignOriginStatus": 403,
+    "noPaidInferenceExecuted": true
   },
   "publicDownloads": {
     "http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk": {
       "status": 200,
-      "bytes": 1173342,
+      "bytes": 1197918,
       "mime": "application/vnd.android.package-archive",
-      "sha256Matches": true
+      "digestMatches": true
     },
     "https://guihualab.cn/liveai/downloads/liveai-latest.apk": {
       "status": 200,
-      "bytes": 1173342,
+      "bytes": 1197918,
       "mime": "application/vnd.android.package-archive",
-      "sha256Matches": true
+      "digestMatches": true
     },
     "http://42.192.115.30:8182/": {
       "status": 401
@@ -123,14 +112,6 @@
     "https://guihualab.cn/liveai/api/models": {
       "status": 401
     },
-    "existingTtydDownloadStatus": 200
-  },
-  "publicWebsite": {
-    "publicNavigationLink": true,
-    "previewLoaded": true,
-    "productionBrowserLogin": true,
-    "retainedLoginAfterReload": true,
-    "navigationMobileOverflow": false,
-    "errors": []
+    "existingTtydApkStatus": 200
   }
 }

@@ -1,0 +1,11 @@
+/** Independent observable queue: changing a React page never owns/cancels jobs. */
+export class ImageQueue {
+  constructor({run,limit=10,now=Date.now,id=()=>crypto.randomUUID(),initial=[]}){this.run=run;this.limit=limit;this.effectiveLimit=limit;this.pausedUntil=0;this.now=now;this.id=id;this.jobs=initial;this.running=0;this.controllers=new Map();this.listeners=new Set();}
+  subscribe=(fn)=>{this.listeners.add(fn);return()=>this.listeners.delete(fn)};
+  getSnapshot=()=>this.jobs;
+  emit(){this.jobs=[...this.jobs];for(const fn of this.listeners)fn()}
+  submit(input){if(this.jobs.filter(j=>['queued','running'].includes(j.status)).length>=100)throw new Error('待处理任务达到 100 个，请稍后继续');const job={...input,id:this.id(),createdAt:this.now(),status:'queued',error:''};this.jobs=[job,...this.jobs];this.emit();this.pump();return job.id;}
+  pump(){if(this.now()<this.pausedUntil){if(!this.wakeup)this.wakeup=setTimeout(()=>{this.wakeup=null;this.pump()},Math.max(1,this.pausedUntil-this.now()));return;}while(this.running<this.effectiveLimit){const job=[...this.jobs].reverse().find(j=>j.status==='queued');if(!job)break;job.status='running';job.startedAt=this.now();this.running++;const controller=new AbortController();this.controllers.set(job.id,controller);this.emit();Promise.resolve().then(()=>this.run({model:job.model,prompt:job.prompt,size:job.size},controller.signal)).then(data=>{if(job.status!=='cancelled'){job.status='succeeded';job.data=data;}}).catch(error=>{if(job.status!=='cancelled'){if(error.status===429&&error.code==='concurrency_limit_exceeded'&&(job.rejections||0)<12){job.rejections=(job.rejections||0)+1;job.status='queued';job.error='官网并发限流，等待空闲通道后继续。';this.effectiveLimit=Math.max(1,this.effectiveLimit-1);this.pausedUntil=this.now()+2000;}else{job.status='failed';job.error=error.message||'生成失败';}}}).finally(()=>{this.running--;this.controllers.delete(job.id);this.emit();this.pump();});}}
+  cancel(id){const job=this.jobs.find(j=>j.id===id);if(job&&['running','queued'].includes(job.status)){job.status='cancelled';job.error='已取消本机等待，官网已接收的任务仍可能完成';this.controllers.get(id)?.abort();this.emit();this.pump();}}
+  remove(id){this.jobs=this.jobs.filter(j=>j.id!==id||['queued','running'].includes(j.status));this.emit();}
+}

@@ -1,187 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {Sparkles,LoaderCircle,ArrowUpRight,Download,Copy,Image as ImageIcon,Plus,ScanEye,Upload,RefreshCw,ShieldCheck,LockKeyhole,AudioLines,Volume2} from "lucide-react";
 import {api,post,read,save} from "./workspace.js";
-export function ImageStudio({ onError, onNotice }) {
-  const [prompt, setPrompt] = useState(() => read("imagePrompt", "")),
-    [model, setModel] = useState("moss-image-sft-1.0"),
-    [size, setSize] = useState("1024x1024"),
-    [busy, setBusy] = useState(false),
-    [result, setResult] = useState(null),
-    [elapsed, setElapsed] = useState(0);
-  const timer = useRef(null),
-    active = useRef(true);
-  useEffect(() => {
-    active.current = true;
-    return () => {
-      active.current = false;
-      clearInterval(timer.current);
-    };
-  }, []);
-  async function generate(e) {
-    e.preventDefault();
-    onError("");
-    setBusy(true);
-    setElapsed(0);
-    save("imagePrompt", prompt);
-    const start = Date.now();
-    timer.current = setInterval(
-      () => setElapsed(Math.round((Date.now() - start) / 1000)),
-      1000,
-    );
-    try {
-      const data = await post("/images", { prompt, model, size });
-      if (active.current) setResult(data);
-    } catch (e) {
-      onError(e.message,e);
-    } finally {
-      clearInterval(timer.current);
-      if (active.current) setBusy(false);
-    }
-  }
-  const examples = [
-    "一张极简风格的咖啡海报，奶油色背景，深绿色中文字“慢一点，也很好”，柔和自然光，精致排版。",
-    "雨后苏州的小巷，青石板路映着暖色灯光，水彩插画，安静而有生活气息。",
-    "一座悬浮在云层中的玻璃温室，植物茂盛，清晨阳光，电影感构图，细节丰富。",
-  ];
-  return (
-    <div className="studio-layout">
-      <form className="studio-form" onSubmit={generate}>
-        <div className="studio-title">
-          <Sparkles size={20} />
-          <h2>描述你的想象</h2>
-          <span className="pill">限时免费</span>
-        </div>
-        <label htmlFor="image-prompt">
-          画面描述
-          <textarea
-            id="image-prompt"
-            rows={8}
-            maxLength={4000}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="主体、场景、风格、光线…越具体，越接近想象。"
-            required
-          />
-        </label>
-        <div className="field-count">{prompt.length} / 4000</div>
-        <label htmlFor="image-model">
-          图像模型
-          <select
-            id="image-model"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-          >
-            <option value="moss-image-sft-1.0">MOSS Image SFT · 已验证</option>
-            <option value="moss-image-base-1.0">
-              MOSS Image Base · 官方免费
-            </option>
-          </select>
-        </label>
-        <label htmlFor="image-size">
-          画面比例
-          <select
-            id="image-size"
-            value={size}
-            onChange={(e) => setSize(e.target.value)}
-          >
-            <option value="1024x1024">1:1 · 1024 × 1024</option>
-            <option value="1024x1536">2:3 · 1024 × 1536</option>
-            <option value="1536x1024">3:2 · 1536 × 1024</option>
-            <option value="512x512">1:1 · 512 × 512</option>
-          </select>
-        </label>
-        <button
-          className="button primary wide"
-          disabled={busy || !prompt.trim()}
-        >
-          {busy ? (
-            <LoaderCircle className="spin" size={18} />
-          ) : (
-            <Sparkles size={18} />
-          )}{" "}
-          {busy ? `正在创作 · ${elapsed}s` : "生成图像"}
-        </button>
-        <p className="field-hint">
-          生成可能需要 1–2 分钟。每次一张，不自动重试。
-        </p>
-        <div className="example-list">
-          <strong>从一点灵感开始</strong>
-          {examples.map((s, i) => (
-            <button
-              type="button"
-              key={i}
-              disabled={busy}
-              onClick={() => setPrompt(s)}
-            >
-              {["文字海报", "江南水彩", "想象建筑"][i]}
-              <ArrowUpRight size={14} />
-            </button>
-          ))}
-        </div>
-      </form>
-      <section className="image-result">
-        {busy ? (
-          <div className="empty-large">
-            <div className="orb small-orb">
-              <Sparkles size={30} />
-            </div>
-            <h2>正在把想象变成画面</h2>
-            <p>已等待 {elapsed} 秒，请保持页面打开。</p>
-          </div>
-        ) : result ? (
-          <>
-            <img
-              src={result.data?.[0]?.url}
-              alt={prompt}
-              referrerPolicy="no-referrer"
-            />
-            <div className="image-result-footer">
-              <span>
-                {result.usage?.output_width} × {result.usage?.output_height} ·
-                MOSS Image
-              </span>
-              <a
-                className="button primary"
-                href={result.data?.[0]?.url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <Download size={16} />
-                打开原图保存
-              </a>
-              <button
-                className="button subtle"
-                onClick={() =>
-                  navigator.clipboard
-                    .writeText(result.data?.[0]?.url)
-                    .then(() => onNotice("图片链接已复制"))
-                    .catch(() => onError("复制失败，请打开原图保存。"))
-                }
-              >
-                <Copy size={15} />
-              </button>
-            </div>
-            <p className="field-hint">
-              平台图片链接有时效，请及时打开原图保存。
-            </p>
-          </>
-        ) : (
-          <div className="empty-large image-empty">
-            <div className="image-outline">
-              <ImageIcon size={43} />
-              <span className="image-outline-corner">
-                <Plus size={17} />
-              </span>
-            </div>
-            <h2>下一张作品，从这里开始。</h2>
-            <p>输入画面描述，让创意慢慢浮现。</p>
-            <span className="pill">MOSS IMAGE · 限时免费</span>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-}
+import PaidTools from "./PaidTools.jsx";
+import {nativeTools,getTools,subscribeTools} from "./native-tools.js";
+export {default as ImageStudio} from "./ImageStudio.jsx";
 export function VisionStudio({ onError }) {
   const [file, setFile] = useState(null),
     [url, setUrl] = useState(""),
@@ -305,15 +127,17 @@ export function VisionStudio({ onError }) {
 }
 export function Models({ catalog, stats, onRefresh }) {
   const [tier, setTier] = useState("free");
+  const directState=useSyncExternalStore(subscribeTools,getTools,getTools);
+  const unlocked=nativeTools()&&directState.paidUnlocked;
   return (
     <>
       <div className="cost-overview">
         <div>
           <ShieldCheck size={28} />
           <span>
-            <strong>免费通道独立运行</strong>
+            <strong>默认使用免费模型</strong>
             <small>
-              付费请求在服务端被拦截 · 不自动充值 · 不自动降级到收费模型
+              付费需单独输入密码解锁 · 只在手动选择后调用 · 不自动充值
             </small>
           </span>
         </div>
@@ -336,7 +160,7 @@ export function Models({ catalog, stats, onRefresh }) {
           className={tier === "paid" ? "selected" : ""}
           onClick={() => setTier("paid")}
         >
-          付费能力 · 已锁定
+          付费能力 {unlocked?'· 已解锁':'· 密码解锁'}
           <LockKeyhole size={14} />
         </button>
         <a
@@ -348,12 +172,13 @@ export function Models({ catalog, stats, onRefresh }) {
           <ArrowUpRight size={14} />
         </a>
       </div>
+      {tier === "paid" && <PaidTools unlocked={unlocked}/>}
       <div className="model-grid">
         {catalog?.models
           .filter((m) => m.tier === tier)
           .map((m) => (
             <article
-              className={`model-card ${tier === "paid" ? "paid-card" : ""}`}
+              className={`model-card ${tier === "paid" && !unlocked ? "paid-card" : ""}`}
               key={m.id}
             >
               <div className="model-card-top">
@@ -374,7 +199,7 @@ export function Models({ catalog, stats, onRefresh }) {
                       verified: "已实测",
                       documented: "官方目录",
                       unavailable: "上游不可用",
-                      locked: "付费已锁定",
+                      locked: unlocked?"付费已解锁":"付费需密码",
                     }[m.status]
                   }
                 </span>
@@ -401,11 +226,11 @@ export function Models({ catalog, stats, onRefresh }) {
       {stats && (
         <div className="stats-bar">
           <div>
-            <strong>{stats.liveSessions}</strong>
+            <strong>{stats.nativeDirect?'—':stats.liveSessions}</strong>
             <span>实时会话</span>
           </div>
           <div>
-            <strong>{Math.round(stats.liveSeconds / 60)}</strong>
+            <strong>{stats.nativeDirect?'—':Math.round(stats.liveSeconds / 60)}</strong>
             <span>实时累计分钟</span>
           </div>
           <div>
@@ -419,19 +244,13 @@ export function Models({ catalog, stats, onRefresh }) {
             <span>HTTP 成功 / 失败</span>
           </div>
           <p>
-            网页中转与工具统计，含维护测试
+            {stats.nativeDirect?'本机直连工具统计，当前进程':'网页兼容工具统计，含维护测试'}
             <br />自 {new Date(stats.since).toLocaleDateString("zh-CN")}{" "}
             起，非平台账单；不含 APP 直连通话
           </p>
         </div>
       )}
-      {tier === "paid" && (
-        <div className="alert warning">
-          <span>
-            当前没有充值，本服务的付费能力全部关闭。这里展示官方计费信息；充值不会自动解锁，需另行配置后端接入。
-          </span>
-        </div>
-      )}
+
     </>
   );
 }
