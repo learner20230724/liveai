@@ -4,7 +4,7 @@ MOSS Live 工作台与独立 Android 客户端，包含实时语音、摄像头�
 
 [下载 APK](http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk) · [HTTPS 备用](https://guihualab.cn/liveai/downloads/liveai-latest.apk) · [网页兼容入口](https://guihualab.cn/liveai/) · [规划 Lab](https://guihualab.cn/)
 
-## Android 3.2
+## Android 3.3
 
 同包名 `cn.guihualab.liveai`、同签名，直接覆盖安装旧版，保留本地数据。通用单 APK，不含 ABI 专用 `.so`，兼容 ARM64。原生能力变更需要本次 APK；后续页面继续完整 ZIP OTA 更新。
 
@@ -26,6 +26,18 @@ MOSS Live 工作台与独立 Android 客户端，包含实时语音、摄像头�
 MOSS VL 已实测可用，入口显示实际请求结果。MOSS VL Realtime 是独立协议，仍为目录项；本项目实时画面交互由 MOSS Live 提供。网页屏幕共享依赖浏览器支持；APP 使用原生 MediaProjection，由通话前台服务持有。
 
 图像结果可能有官网链接时效：原生成功任务会先把原图缓存到手机再展示。图像任务最多保留最近 80 项（待处理任务优先保留），删除任务会删除对应私有缓存；保存到相册的副本独立保留。网页只在当前页面进程内持续执行，关闭整个浏览器不会获得 Android 后台服务能力。本机/网页计数不是账号余额或平台账单。
+
+## 通话设置与任务事件（3.3.0）
+
+网页的「对话设置」和 APP 设置共用配置：播放 0.5–2 倍速、音量、助手名称/别名、独立回复规则、回复语言/长度/语气、当前/跨会话记忆、画面关注来源、0.5/1/2 fps、摄像头 320/480/640 px、屏幕 640/960/1280 px、JPEG 压缩档位。浏览器还可选择系统枚举的麦克风，APP 保留原生耳机/通话设备选择。倍速与音量在通话中即时应用；会话和画面配置在下一次开始通话时应用。全部保存在当前设备，默认不启用跨会话记忆或本机工具。回复语言/长度/语气通过 instructions 传递，是模型行为偏好，不是确定性约束。
+
+跨会话记忆使用本机生成的稳定 user ID，经直连 URL 发给官网；attach_session 同时指定 user 范围。电脑需要扩展 1.1.0，已有扩展下载新 ZIP 覆盖原文件夹、在扩展管理页重新加载，再刷新网页。普通会话仍兼容 1.0.0。APP 调速等原生能力需要 3.3.0/code7 同签名覆盖安装，后续网页继续 OTA。
+
+播放调速是客户端播放控制，不是更改 MOSS 的语音生成速度。模型音色保持官网默认：实测公开 WSS 给官网体验页的两种 voice ID 均返回 HTTP400 `unsupported public query option`；在 attach_session/session.update 内传 voice 也被协议拒绝。没有提供无效的音色下拉框。
+
+「连接与任务事件」显示官网实际返回的连接/配置/工具事件及本机执行结果，区分来源，只在当前会话内保留最近 80 条，并去除凭据/内部推理字段。默认不制造后台任务进度。可选「允许读取本机时间」只注册 liveai_current_time，收到真实函数请求后读取时间/时区并回传，不接入文件、Shell 或任意网络执行。官网实际确认了工具注册、请求、结果接收，并在结果之后继续返回文字/音频；这不等同于完整后台模型过程可见，也不代表已经支持自主操控电脑。
+
+可复查的同协议项目包括 [OmniStudio](https://github.com/kunpengtalk/OmniStudio) 的桌面工作台 MOSS 适配器（当前 README 标注 macOS Apple Silicon），以及 [CallPilot](https://github.com/tianye1999/callpilot) 的电话助手适配器。二者是第三方项目；不是本项目已经安装的完整桌面执行器。配置依据及实测边界见 [verification.md](docs/verification.md)。
 
 ## 本地运行
 

@@ -12,7 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /** Service-owned MediaProjection snapshots; no screen pixels enter JS, storage or the hub. */
 final class ScreenFrames implements ScreenCapture {
-    private final Context context;private final Listener listener;
+    private final CallOptions options;private final Context context;private final Listener listener;
     private final HandlerThread thread=new HandlerThread("liveai-screen");
     private final AtomicBoolean closed=new AtomicBoolean();
     private Handler handler;private MediaProjection projection;private VirtualDisplay display;private ImageReader reader;
@@ -26,14 +26,14 @@ final class ScreenFrames implements ScreenCapture {
         @Override public void onStop(){release("");}
         @Override public void onCapturedContentResize(int w,int h){resize(w,h);}
     };
-    ScreenFrames(Context context,Listener listener){this.context=context.getApplicationContext();this.listener=listener;}
+    ScreenFrames(Context context,Listener listener){this.context=context.getApplicationContext();this.listener=listener;options=CallOptions.load(context);}
     @Override public void start(int resultCode,Intent consent){
         if(closed.get())return;thread.start();handler=new Handler(thread.getLooper());
         handler.post(()->{
             if(closed.get())return;
             try {
                 density=context.getResources().getDisplayMetrics().densityDpi;
-                Rect bounds=bounds();int[] initial=ScreenFrameEncoder.size(bounds.width(),bounds.height());width=initial[0];height=initial[1];
+                Rect bounds=bounds();int[] initial=ScreenFrameEncoder.size(bounds.width(),bounds.height(),options.screenEdge);width=initial[0];height=initial[1];
                 projection=context.getSystemService(MediaProjectionManager.class).getMediaProjection(resultCode,consent);
                 if(projection==null)throw new IllegalStateException("Missing projection consent");
                 projection.registerCallback(callback,handler);
@@ -56,11 +56,11 @@ final class ScreenFrames implements ScreenCapture {
             Image image=null;Bitmap bitmap=null;
             try {
                 image=source.acquireLatestImage();if(image==null||closed.get())return;
-                long now=SystemClock.elapsedRealtime();if(now-lastFrame<1000||!listener.wantsFrame())return;lastFrame=now;
+                long now=SystemClock.elapsedRealtime();if(now-lastFrame<1000/options.fps||!listener.wantsFrame())return;lastFrame=now;
                 Image.Plane plane=image.getPlanes()[0];int w1=image.getWidth(),h1=image.getHeight();
                 int[] pixels=ScreenFrameEncoder.rgba(plane.getBuffer(),w1,h1,plane.getPixelStride(),plane.getRowStride());
                 bitmap=Bitmap.createBitmap(pixels,w1,h1,Bitmap.Config.ARGB_8888);
-                byte[] bytes=ScreenFrameEncoder.jpeg(bitmap);
+                byte[] bytes=ScreenFrameEncoder.jpeg(bitmap,options.quality);
                 if(bytes!=null&&!closed.get()&&listener.wantsFrame())listener.frame(bytes);
             }catch(Exception ignored){/* Drop a stale/invalid snapshot while voice continues. */}
             finally{if(bitmap!=null)bitmap.recycle();if(image!=null)image.close();}
@@ -70,7 +70,7 @@ final class ScreenFrames implements ScreenCapture {
     private void resize(int w,int h){
         if(closed.get()||display==null)return;
         try{
-            int[] size=ScreenFrameEncoder.size(w,h);if(width==size[0]&&height==size[1])return;
+            int[] size=ScreenFrameEncoder.size(w,h,options.screenEdge);if(width==size[0]&&height==size[1])return;
             ImageReader next=createReader(size[0],size[1]),previous=reader;
             try{display.setSurface(null);display.resize(size[0],size[1],density);display.setSurface(next.getSurface());}
             catch(Exception failure){next.close();throw failure;}

@@ -12,7 +12,8 @@ final class MossConnection {
     private final WebSocket.Factory factory;private final Listener listener;private volatile WebSocket socket;private volatile int generation;
     MossConnection(Listener listener){this(new OkHttpClient.Builder().connectTimeout(15,TimeUnit.SECONDS).writeTimeout(10,TimeUnit.SECONDS).readTimeout(0,TimeUnit.MILLISECONDS).pingInterval(15,TimeUnit.SECONDS).build(),listener);}
     MossConnection(WebSocket.Factory factory,Listener listener){this.factory=factory;this.listener=listener;}
-    synchronized void connect(String key){final int epoch=++generation;Request request=new Request.Builder().url(ENDPOINT).header("Authorization","Bearer "+key).build();socket=factory.newWebSocket(request,new WebSocketListener(){
+    synchronized void connect(String key){connect(key,"");}
+    synchronized void connect(String key,String user){if(!user.isEmpty()&&!user.matches("[A-Za-z0-9_-]{1,64}"))throw new IllegalArgumentException("Invalid user identity");final int epoch=++generation;Request request=new Request.Builder().url(ENDPOINT+(user.isEmpty()?"":"&user="+user)).header("Authorization","Bearer "+key).build();socket=factory.newWebSocket(request,new WebSocketListener(){
         @Override public void onOpen(WebSocket ws,Response response){if(epoch!=generation){ws.close(1000,"Superseded");return;}socket=ws;listener.opened();}
         @Override public void onMessage(WebSocket ws,String text){if(epoch!=generation)return;try{listener.message(new JSONObject(text));}catch(Exception ignored){listener.disconnected(400);}}
         @Override public void onMessage(WebSocket ws,ByteString bytes){if(epoch==generation)listener.audio(bytes.toByteArray());}

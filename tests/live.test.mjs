@@ -30,10 +30,11 @@ function player() {
     },
     createBufferSource() {
       const node = {
+        playbackRate:{value:1},
         connect() {},
         disconnect() {},
-        start(t) {
-          this.at = t;
+        start(t,offset=0) {
+          this.offset=offset;this.at = t;
         },
         stop() {
           this.onended?.();
@@ -52,7 +53,7 @@ test("never acknowledge chunks until playback really ends; turn ack waits for fi
   session.play(new Int16Array(4800).buffer);
   session.event({ action: "response.audio.done", data: ctx });
   assert.equal(messages.length, 0);
-  nodes[0].onended();
+  session.audio.currentTime=.115;nodes[0].onended();
   assert.deepEqual(
     messages.map((m) => m.action),
     ["playback.chunk.completed", "playback.completed"],
@@ -95,4 +96,18 @@ test("paid and unknown model selection never falls back to another model", () =>
     (e) => e.code === "INVALID_MODEL",
   );
   assert.equal(selectModel("moss-image-sft-1.0", "image").tier, "free");
+});
+
+test('changing playback speed reschedules remaining samples without premature or duplicate acknowledgements',()=>{
+ const {session,messages,nodes}=player();session.gain={gain:{setValueAtTime(value){this.value=value}}};
+ for(let i=0;i<2;i++){session.contexts.push({chunk_id:'s'+i,run_id:'r',turn_id:'t'});session.play(new Int16Array(48000).buffer)}
+ session.audio.currentTime=.515;session.setPlayback(2,.4);assert.equal(messages.length,0);assert.equal(nodes[0].onended,null);assert.equal(nodes[1].onended,null);assert.equal(nodes.length,4);assert.equal(nodes[2].offset,.5);assert.equal(nodes[2].playbackRate.value,2);assert.equal(session.gain.gain.value,.4);assert.ok(Math.abs(nodes[3].at-.78)<1e-8);
+ session.audio.currentTime=.655;session.stopPlayback({run_id:'r',turn_id:'t'});assert.equal(messages.length,1);assert.equal(messages[0].played_audio_ms,750);assert.ok(messages.every(m=>m.action!=='playback.chunk.completed'));
+});
+test('rescheduled audio acknowledges each original chunk only when its replacement source ends',()=>{
+ const {session,messages,nodes}=player();session.contexts.push({chunk_id:'s',run_id:'r',turn_id:'t'});session.play(new Int16Array(48000).buffer);session.event({action:'response.audio.done',data:{run_id:'r',turn_id:'t'}});session.audio.currentTime=.215;session.setPlayback(.5,1);assert.equal(messages.length,0);session.audio.currentTime=1.83;nodes[1].onended();assert.deepEqual(messages.map(m=>m.action),['playback.chunk.completed','playback.completed']);nodes[1].onended();assert.equal(messages.length,2);
+});
+
+test('an early browser ended callback cannot acknowledge before the scheduled media end',()=>{
+ const {session,messages,nodes}=player();session.contexts.push({chunk_id:'early',run_id:'r',turn_id:'t'});session.play(new Int16Array(48000).buffer);session.audio.currentTime=.8;nodes[0].onended();assert.equal(messages.length,0);session.audio.currentTime=1.02;session.completeAudio([...session.sources][0]);assert.equal(messages[0].action,'playback.chunk.completed');
 });

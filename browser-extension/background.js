@@ -5,16 +5,19 @@ const WS='wss://api.mosi.cn/v1/realtime?model=moss-live-1.0';
 const pairs=new Map();
 const from64=text=>Uint8Array.from(atob(text),c=>c.charCodeAt(0));
 const to64=bytes=>btoa(String.fromCharCode(...new Uint8Array(bytes)));
+async function installRule(key){
+ await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[1],addRules:[{id:1,priority:1,action:{type:'modifyHeaders',requestHeaders:[{header:'Authorization',operation:'set',value:'Bearer '+key},{header:'Origin',operation:'remove'}]},condition:{regexFilter:'^wss://api\\.mosi\\.cn/v1/realtime\\?model=moss-live-1\\.0(?:&user=[A-Za-z0-9_-]+)?$',initiatorDomains:['guihualab.cn'],resourceTypes:['websocket']}}]});
+}
 async function configure(payload){
  const pair=pairs.get(payload?.nonce);pairs.delete(payload?.nonce);if(!pair)throw new Error('直连配置已失效，请重试');
  const key=new TextDecoder().decode(await crypto.subtle.decrypt({name:'RSA-OAEP'},pair.privateKey,from64(payload.encryptedKey)));
  if(!/^sk-[A-Za-z0-9_-]{20,200}$/.test(key))throw new Error('官网配置无效');
+ await installRule(key);
  await chrome.storage.session.set({mossKey:key});
- await chrome.declarativeNetRequest.updateSessionRules({removeRuleIds:[1],addRules:[{id:1,priority:1,action:{type:'modifyHeaders',requestHeaders:[{header:'Authorization',operation:'set',value:'Bearer '+key},{header:'Origin',operation:'remove'}]},condition:{regexFilter:'^wss://api\\.mosi\\.cn/v1/realtime\\?model=moss-live-1\\.0$',initiatorDomains:['guihualab.cn'],resourceTypes:['websocket']}}]});
  return {ready:true,endpoint:WS};
 }
 async function execute(operation,payload){
- if(operation==='status')return {ready:!!(await chrome.storage.session.get('mossKey')).mossKey};
+ if(operation==='status'){const {mossKey}=await chrome.storage.session.get('mossKey');if(mossKey)await installRule(mossKey);return {version:chrome.runtime.getManifest().version,ready:!!mossKey};}
  if(operation==='prepare'){
   const pair=await crypto.subtle.generateKey({name:'RSA-OAEP',modulusLength:2048,publicExponent:new Uint8Array([1,0,1]),hash:'SHA-256'},false,['encrypt','decrypt']);
   const nonce=crypto.randomUUID();pairs.clear();pairs.set(nonce,pair);const pub=await crypto.subtle.exportKey('spki',pair.publicKey);

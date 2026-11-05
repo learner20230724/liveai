@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LiveAI 官网直连",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "minimum_chrome_version": "120",
   "permissions": [
     "storage",

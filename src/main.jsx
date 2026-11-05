@@ -1,3 +1,7 @@
+import CallSettings from './CallSettings.jsx';
+import ModelEvents from './ModelEvents.jsx';
+import {loadSettings,normalizeSettings} from './call-settings.js';
+import {observeModelEvent,emptyModelState} from './model-events.js';
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -73,6 +77,9 @@ function Brand() {
   );
 }
 function App() {
+  const [callSettings,setCallSettings]=useState(()=>loadSettings(read)),[modelState,setModelState]=useState(emptyModelState),[devices,setDevices]=useState([]);
+  function changeCallSettings(value){const next=normalizeSettings(value);setCallSettings(next);save('callSettings',next);save('callUser',next.user);engine.current?.setPlayback(next.rate,next.volume);}
+
   const [profile]=useState(()=>conversationProfile(read));
   const [section, setSection] = useState("live"),
     [auth, setAuth] = useState(null),
@@ -99,6 +106,7 @@ function App() {
     [networkBusy,setNetworkBusy] = useState(false);
   const [directReady,setDirectReady]=useState(false);
   useEffect(()=>{if(auth)prepareBrowserDirect().then(setDirectReady)},[auth]);
+  useEffect(()=>{if(settings)navigator.mediaDevices?.enumerateDevices?.().then(list=>setDevices(list.filter(d=>d.kind==='audioinput'&&d.deviceId))).catch(()=>{})},[settings]);
   const engine = useRef(null),
     lines = useRef([]),
     began = useRef(0),
@@ -244,6 +252,7 @@ function App() {
     setTranscript([...lines.current]);
   }
   function event(m) {
+    setModelState(old=>observeModelEvent(old,m));
     const d=m.data||{},key=`a-${d.run_id||"current"}-${d.turn_id||"current"}`;
     if(m.action==="input.transcript.updated"){drafts.current.user=d.text||"";setDraft(old=>({...old,user:d.text||""}));}
     if(m.action==="input.transcript.done"){
@@ -282,7 +291,8 @@ function App() {
       onLevel: setLevel,
     });
     engine.current = session;
-    await session.start(prompt);
+    setModelState(emptyModelState());
+    await session.start(prompt,callSettings);
   }
   async function toggleMedia(source) {
     setError("");
@@ -539,7 +549,7 @@ function App() {
                     <section className="settings-panel">
                       <div>
                         <h3>让 LiveAI 更懂你</h3>
-                        <p>设置将在下次开始对话时生效。</p>
+
                       </div>
                       <label htmlFor="persona">
                         助手角色与回复偏好
@@ -552,6 +562,7 @@ function App() {
                           disabled={connected}
                         />
                       </label>
+                      <CallSettings value={callSettings} onChange={changeCallSettings} active={connected} devices={devices}/>
                       <IconButton
                         icon={X}
                         label="关闭对话设置"
@@ -789,6 +800,7 @@ function App() {
                     </section>
                   </div>
 
+                  <ModelEvents value={modelState}/>
                 </>
               )}
               {section === "images" && (

@@ -19,7 +19,7 @@ final class NativeAudio implements CallAudio {
     private final Context context;private final AudioManager manager;private final Listener listener;private final Handler handler=new Handler(Looper.getMainLooper());
     private AudioRecord recorder;private AudioTrack track;private AudioFocusRequest focusRequest;private AcousticEchoCanceler echo;private NoiseSuppressor noise;
     private final BlockingQueue<Item> queue=new LinkedBlockingQueue<>(512);private final PlaybackLedger ledger=new PlaybackLedger();private final Object outputLock=new Object();
-    private volatile boolean running,muted,focused=true;private volatile String preference="auto";private volatile int epoch;private final AtomicLong queuedBytes=new AtomicLong();
+    private volatile float playbackRate=1,playbackVolume=1;private volatile boolean running,muted,focused=true;private volatile String preference="auto";private volatile int epoch;private final AtomicLong queuedBytes=new AtomicLong();
     private long lastHead,headWrap;private Thread capture,playback,monitor;
     private final AudioDeviceCallback devices=new AudioDeviceCallback(){@Override public void onAudioDevicesAdded(AudioDeviceInfo[] added){applyRoute();}@Override public void onAudioDevicesRemoved(AudioDeviceInfo[] removed){applyRoute();}};
     private static final class Item {final byte[] bytes;final PlaybackLedger.Chunk context;Item(byte[] b,PlaybackLedger.Chunk c){bytes=b;context=c;}}
@@ -37,7 +37,7 @@ final class NativeAudio implements CallAudio {
         if(recorder.getState()!=AudioRecord.STATE_INITIALIZED||track.getState()!=AudioTrack.STATE_INITIALIZED)throw new IllegalStateException("当前设备无法初始化通话音频");
         recorder.addOnRoutingChangedListener(r->reportRoute(),handler);track.addOnRoutingChangedListener(r->reportRoute(),handler);manager.registerAudioDeviceCallback(devices,handler);
         try{if(AcousticEchoCanceler.isAvailable()){echo=AcousticEchoCanceler.create(recorder.getAudioSessionId());if(echo!=null)echo.setEnabled(true);}if(NoiseSuppressor.isAvailable()){noise=NoiseSuppressor.create(recorder.getAudioSessionId());if(noise!=null)noise.setEnabled(true);}}catch(RuntimeException ignored){}
-        running=true;track.play();applyRoute();
+        settings(playbackRate,playbackVolume);running=true;track.play();applyRoute();
         capture=new Thread(this::captureLoop,"liveai-microphone");playback=new Thread(this::playbackLoop,"liveai-speaker");monitor=new Thread(this::monitorLoop,"liveai-playback-ack");capture.start();playback.start();monitor.start();
         handler.postDelayed(this::reportRoute,800);
     }
@@ -64,6 +64,9 @@ final class NativeAudio implements CallAudio {
     public void interrupt(JSONObject data){String run=data.optString("run_id"),turn=data.optString("turn_id");long played;
         synchronized(outputLock){long position=head();for(PlaybackLedger.Ack ack:ledger.advance(position))listener.acknowledge(ack);played=ledger.interrupt(run,turn,position);epoch++;track.pause();track.flush();lastHead=0;headWrap=0;ledger.resetClock();if(focused)track.play();}
         queue.removeIf(item->{if(item.context.cancelled){queuedBytes.addAndGet(-item.bytes.length);return true;}return false;});listener.stopped(run,turn,played);
+    }
+    public void settings(float rate,float volume){
+        synchronized(outputLock){playbackRate=Math.max(.5f,Math.min(2,rate));playbackVolume=Math.max(0,Math.min(1,volume));if(track!=null){track.setPlaybackParams(new PlaybackParams().allowDefaults().setSpeed(playbackRate).setPitch(1));track.setVolume(playbackVolume);if(!focused)track.pause();}}
     }
     public void muted(boolean value){muted=value;handler.post(this::reportRoute);}
     public void route(String value){preference=value;handler.post(this::applyRoute);}

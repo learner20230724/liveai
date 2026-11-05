@@ -6,9 +6,10 @@ import java.nio.ByteBuffer;
 
 final class ScreenFrameEncoder {
     static final int MAX_EDGE=960,MAX_BYTES=32768;
-    static int[] size(int width,int height) {
+    static int[] size(int width,int height) {return size(width,height,MAX_EDGE);}
+    static int[] size(int width,int height,int edge) {
         if(width<=0||height<=0)throw new IllegalArgumentException("Invalid screen size");
-        double ratio=Math.min(1d,(double)MAX_EDGE/Math.max(width,height));
+        double ratio=Math.min(1d,(double)edge/Math.max(width,height));
         return new int[]{Math.max(1,(int)Math.round(width*ratio)),Math.max(1,(int)Math.round(height*ratio))};
     }
     static int[] rgba(ByteBuffer plane,int width,int height,int pixelStride,int rowStride) {
@@ -22,11 +23,12 @@ final class ScreenFrameEncoder {
         }
         return argb;
     }
-    static byte[] jpeg(Bitmap bitmap) {
+    static byte[] jpeg(Bitmap bitmap) {return jpeg(bitmap,.6f);}
+    static byte[] jpeg(Bitmap bitmap,float initialQuality) {
         Bitmap current=bitmap;ByteArrayOutputStream output=new ByteArrayOutputStream();
         try {
             while(true){
-                for(int quality:new int[]{60,44,30}){
+                for(int quality:new int[]{(int)(initialQuality*100),44,30}){
                     output.reset();current.compress(Bitmap.CompressFormat.JPEG,quality,output);
                     if(output.size()<=MAX_BYTES)return output.toByteArray();
                 }

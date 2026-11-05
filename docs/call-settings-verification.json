@@ -1,0 +1,199 @@
+{
+  "version": "3.3.0",
+  "shellCode": 7,
+  "nodeTests": 34,
+  "androidUnitTests": 34,
+  "physicalDevice": false,
+  "controlsFixture": {
+    "settingsPersist": true,
+    "independentPersonaAndRules": true,
+    "userMemoryOptIn": true,
+    "sessionSettingsLockedDuringCall": true,
+    "playbackAdjustsDuringCall": true,
+    "toolRequestResultDisplayed": true,
+    "noFabricatedServerTasks": true,
+    "physicalDevice": false,
+    "providerSimulated": true,
+    "playback": {
+      "actualWebAudio": true,
+      "rateChangedDuringAudio": true,
+      "chunks": 2,
+      "completed": 1,
+      "noEarlyAcknowledgements": true,
+      "scheduled": [
+        {
+          "chunk": "audio-0",
+          "end": 1.7557256235827663
+        },
+        {
+          "chunk": "audio-1",
+          "end": 3.7557256235827663
+        }
+      ],
+      "acks": [
+        {
+          "event": {
+            "action": "playback.chunk.completed",
+            "chunk_id": "audio-0",
+            "run_id": "run",
+            "turn_id": "turn"
+          },
+          "at": 1.761814058956916
+        },
+        {
+          "event": {
+            "action": "playback.chunk.completed",
+            "chunk_id": "audio-1",
+            "run_id": "run",
+            "turn_id": "turn"
+          },
+          "at": 3.7616326530612243
+        },
+        {
+          "event": {
+            "action": "playback.completed",
+            "run_id": "run",
+            "turn_id": "turn"
+          },
+          "at": 3.7616326530612243
+        }
+      ],
+      "gain": 0.20000000298023224
+    },
+    "errors": []
+  },
+  "providerOptions": {
+    "at": "2026-11-05T05:32:08.106Z",
+    "realMossProvider": true,
+    "physicalDevice": false,
+    "cases": [
+      {
+        "label": "default",
+        "opened": true
+      },
+      {
+        "label": "stable-user",
+        "opened": true
+      },
+      {
+        "label": "user-memory",
+        "opened": true,
+        "delegation": "none",
+        "memoryScope": "user",
+        "configurationAccepted": true,
+        "error": "",
+        "tools": []
+      },
+      {
+        "label": "female-voice",
+        "httpStatus": 400,
+        "reason": "unsupported public query option"
+      },
+      {
+        "label": "male-voice",
+        "httpStatus": 400,
+        "reason": "unsupported public query option"
+      },
+      {
+        "label": "voice-in-attach",
+        "opened": true,
+        "protocolRejected": true,
+        "reason": "invalid or unsupported request"
+      },
+      {
+        "label": "voice-in-session",
+        "opened": true,
+        "delegation": "none",
+        "memoryScope": "session",
+        "protocolRejected": true,
+        "reason": "invalid or unsupported request"
+      },
+      {
+        "label": "client-tool-registration",
+        "opened": true,
+        "delegation": "none",
+        "memoryScope": "session",
+        "configurationAccepted": true,
+        "error": "",
+        "tools": [
+          "liveai_current_time"
+        ]
+      }
+    ]
+  },
+  "providerClientTool": {
+    "actualChromeExtension": true,
+    "realMossProvider": true,
+    "syntheticMicrophone": true,
+    "physicalDevice": false,
+    "playbackRate": 1.25,
+    "volume": 0.4,
+    "confirmedTools": [
+      "liveai_current_time"
+    ],
+    "toolCalls": [
+      "liveai_current_time"
+    ],
+    "toolOutputs": [
+      {
+        "success": true,
+        "timeZone": "Asia/Shanghai"
+      }
+    ],
+    "voiceChunks": 22,
+    "outputAccepted": true,
+    "afterToolText": true,
+    "acknowledgements": 10,
+    "responseCompleted": false,
+    "observedActions": [
+      "session_attached",
+      "session.updated",
+      "input.speech.started",
+      "input.transcript.updated",
+      "input.speech.stopped",
+      "input.transcript.done",
+      "response.audio.started",
+      "response.audio.context",
+      "response.function_call_arguments.done",
+      "response.done",
+      "conversation.item.created",
+      "output.transcript.updated"
+    ],
+    "errors": []
+  },
+  "publicProduction": {
+    "publicProduction": true,
+    "externalNavigation": true,
+    "productionLoginAndCatalog": true,
+    "staticAssetsOverridden": false,
+    "actualExtension": true,
+    "realProvider": true,
+    "syntheticMedia": true,
+    "physicalDevice": false,
+    "completed": true,
+    "counts": {
+      "audio": 803,
+      "camera": 16,
+      "screen": 16
+    },
+    "endpoints": [
+      "wss://api.mosi.cn/v1/realtime?model=moss-live-1.0"
+    ],
+    "retiredRelayReturns410": true,
+    "errors": []
+  },
+  "release": {
+    "publicResources": true,
+    "webApkOtaByteEqual": true,
+    "zipIntegrity": true,
+    "webVersion": "3.3.0",
+    "otaSha256": "b96d107334ec289ed91148a3012b6abb986f47a745c62d89e1d97f896a864260",
+    "apkSha256": "76ebff50ebeb70c8b976c2f19895df32dae5a89a8919262c97cbf30f15410ca9",
+    "apkSize": 1214302,
+    "sameCertificate": true,
+    "extensionVersion": "1.1.0",
+    "noPackagedCredentials": true,
+    "noAbiSpecificLibraries": true,
+    "physicalDevice": false
+  }
+}

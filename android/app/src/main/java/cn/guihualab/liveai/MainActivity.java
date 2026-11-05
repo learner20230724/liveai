@@ -206,6 +206,8 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         @JavascriptInterface public void muteCall(boolean muted) { if(trusted())LiveCallService.mute(muted); }
         @JavascriptInterface public void audioRoute(String route) { if(trusted()&&route!=null&&route.matches("auto|speaker|earpiece|device:[0-9]+")){getSharedPreferences("call-options",MODE_PRIVATE).edit().putString("route",route).apply();LiveCallService.route(route);} }
         @JavascriptInterface public void toggleCamera() { runOnUiThread(()->{if(!trusted()||!resumed||!LiveCallService.active())return;if(cameraFrames!=null){closeCamera();return;}if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION);else startCamera();}); }
+        @JavascriptInterface public int callSettingsVersion(){return 1;}
+        @JavascriptInterface public String configureCallSettings(String json){if(!trusted()||json==null||json.length()>20000)return "{}";try{CallOptions options=new CallOptions(new JSONObject(json));getSharedPreferences("call-options",MODE_PRIVATE).edit().putString("settings",options.json().toString()).apply();LiveCallService.playback(options.rate,options.volume);return options.json().toString();}catch(Exception failure){return "{}";}}
         @JavascriptInterface public int screenVersion(){return 1;}
         @JavascriptInterface public void startScreenShare(){runOnUiThread(MainActivity.this::requestScreenShare);}
         @JavascriptInterface public void stopScreenShare(){if(trusted())LiveCallService.endScreen();}

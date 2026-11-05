@@ -1,0 +1,22 @@
+package cn.guihualab.liveai;
+import android.Manifest;import android.app.Application;import android.content.*;import android.os.*;import org.json.*;import org.junit.Test;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import org.robolectric.android.controller.ServiceController;import static org.junit.Assert.*;import static org.robolectric.Shadows.shadowOf;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=34)
+public class CallSettingsTest {
+ @Test public void validatedSettingsSeparatePersonaAndRulesAndExcludeUnsupportedVoice() throws Exception {
+  CallOptions options=new CallOptions(new JSONObject().put("name","小语").put("aliases","阿语，小语").put("instructions","只根据资料回答").put("language","zh").put("length","short").put("tone","warm").put("rate",10).put("volume",-1).put("screenEdge",9000).put("clockTools",true).put("voice","not-supported"));
+  JSONObject session=options.session("角色设定");assertEquals("小语",session.getJSONObject("persona").getString("name"));assertEquals("角色设定",session.getJSONObject("persona").getString("prompt"));assertTrue(session.getString("instructions").contains("只根据资料"));assertTrue(session.getString("instructions").contains("一到三句话"));assertEquals(2,options.rate,0);assertEquals(0,options.volume,0);assertEquals(1280,options.screenEdge);assertFalse(options.json().has("voice"));assertEquals("liveai_current_time",session.getJSONArray("tools").getJSONObject(0).getString("name"));
+  try{new CallOptions(new JSONObject().put("memory","user").put("user","invalid&model=other"));fail();}catch(IllegalArgumentException expected){}
+ }
+ @Test public void activePlaybackChangesDoNotReconnectAndToolExecutionIsOptInAndDeduplicated() throws Exception {
+  Application app=(Application)RuntimeEnvironment.getApplication();shadowOf(app).grantPermissions(Manifest.permission.RECORD_AUDIO);JSONObject value=new JSONObject().put("memory","user").put("user","device-user-123").put("clockTools",true);app.getSharedPreferences("call-options",Context.MODE_PRIVATE).edit().putString("settings",value.toString()).commit();
+  ServiceController<BackgroundCallTest.TestService> controller=Robolectric.buildService(BackgroundCallTest.TestService.class).create();BackgroundCallTest.TestService service=controller.get();
+  try{service.onStartCommand(new Intent(service,BackgroundCallTest.TestService.class).setAction(LiveCallService.START).putExtra("prompt","测试角色"),0,1);for(int i=0;i<100&&!new JSONObject(LiveCallService.snapshot()).optString("phase").equals("listening");i++){Thread.sleep(10);shadowOf(Looper.getMainLooper()).idle();}
+   assertEquals("device-user-123",service.socket.request.url().queryParameter("user"));assertTrue(service.socket.json.stream().anyMatch(s->s.contains("memory_scope")&&s.contains("user")));
+   LiveCallService.playback(1.5f,.3f);shadowOf(Looper.getMainLooper()).idle();assertEquals(1.5f,service.fake.rate,0);assertEquals(.3f,service.fake.volume,0);assertEquals(1,service.attempts);assertFalse(service.socket.closed);
+   String message=new JSONObject().put("action","response.function_call_arguments.done").put("data",new JSONObject().put("name","liveai_current_time").put("call_id","one").put("arguments","{}")).toString();service.socket.listener.onMessage(service.socket,message);service.socket.listener.onMessage(service.socket,message);shadowOf(Looper.getMainLooper()).idle();assertEquals(1,service.socket.json.stream().filter(s->s.contains("function_call_output")).count());assertTrue(service.socket.json.stream().anyMatch(s->s.contains("function_call_output")&&s.contains("success")));assertTrue(LiveCallService.snapshot().contains("tool.execution.completed"));
+  }finally{LiveCallService.end();shadowOf(Looper.getMainLooper()).idle();controller.destroy();app.getSharedPreferences("call-options",Context.MODE_PRIVATE).edit().remove("settings").commit();}
+ }
+ @Test public void modelEventInspectionNeverForwardsCredentialsOrReasoning() throws Exception {
+  JSONObject raw=new JSONObject().put("authorization","Bearer secret").put("session_id","private-session").put("reasoning","private-reasoning").put("progress",50).put("message","synthetic-only-key sk-syntheticverylongsecret0123456789");String cleaned=ModelEvents.clean(raw,"synthetic-only-key",0).toString();assertFalse(cleaned.contains("private"));assertFalse(cleaned.contains("Bearer"));assertFalse(cleaned.contains("sk-synthetic"));assertTrue(cleaned.contains("50"));assertFalse(ModelEvents.visible("response.audio.context"));
+ }
+}

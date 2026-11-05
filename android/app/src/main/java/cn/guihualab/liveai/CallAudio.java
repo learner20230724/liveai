@@ -9,5 +9,6 @@ interface CallAudio {
     void muted(boolean value);
     void route(String value);
     JSONArray routes();
+    default void settings(float rate,float volume) {}
     void close();
 }
