@@ -11,7 +11,7 @@ public class AudioInputsTest {
  @Test public void explicitInputWinsOverOutputPreferenceAndMissingDeviceNeverSilentlyUsesPhone(){
   AudioInputs.Plan chosen=AudioInputs.plan(List.of(phone,btInput),List.of(speaker,bt),"comm:"+bt.key,"speaker");assertEquals(bt,chosen.communication);assertEquals(btInput,chosen.input);
   AudioInputs.Plan missing=AudioInputs.plan(List.of(phone),List.of(speaker),"comm:"+bt.key,"auto");assertFalse(missing.error.isEmpty());assertFalse(AudioInputs.matches(missing,phone));assertEquals("unavailable",AudioInputs.status(missing,phone,"",100));
-  AudioInputs.Plan selectedPhone=AudioInputs.plan(List.of(phone,btInput),List.of(speaker,bt),"mic:"+phone.key,"auto");assertEquals(phone,selectedPhone.input);assertEquals(speaker,selectedPhone.communication);assertFalse(AudioInputs.matches(selectedPhone,btInput));
+  AudioInputs.Plan selectedPhone=AudioInputs.plan(List.of(phone,btInput),List.of(speaker,bt),"mic:"+phone.key,"auto");assertEquals(phone,selectedPhone.input);assertEquals(speaker,selectedPhone.communication);assertFalse(AudioInputs.matches(selectedPhone,btInput));AudioInputs.Device earpiece=new AudioInputs.Device(50,1,"Phone","earpiece");assertEquals(earpiece,AudioInputs.plan(List.of(phone,btInput),List.of(speaker,earpiece,bt),"mic:"+phone.key,"earpiece").communication);
  }
  @Test public void pairingRejectsAnotherHeadsetAndMusicOutputNeverBecomesAMicrophone() throws Exception {
   AudioInputs.Device other=new AudioInputs.Device(8,7,"My headset","other-address"),music=new AudioInputs.Device(9,8,"My headset","bt-address");assertFalse(AudioInputs.pair(bt,other));assertFalse(AudioInputs.pair(bt,music));assertFalse(AudioInputs.microphone(8));

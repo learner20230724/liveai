@@ -100,3 +100,5 @@ Android 官方约定：[MediaProjection](https://developer.android.com/media/gro
 旧逻辑在 setCommunicationDevice 后立即查输入，可能错过异步出现的 SCO/BLE 麦克风。新逻辑监听通信设备和输入热插拔，进行有界延时复查，重新 setPreferredDevice；录音线程观察路由代次后停止/开始 AudioRecord。实际输入没有匹配期望设备时只向官网发送静音包，状态显示仍依据 getRoutedDevice。明确拒绝、5 秒未切换和断开都有实际错误状态，切页/锁屏不取消选择或通话。音量指示仅在正在通话且输入确认后更新。
 
 Android 官方接口：[AudioRecord](https://developer.android.com/reference/android/media/AudioRecord#setPreferredDevice(android.media.AudioDeviceInfo))、[AudioManager](https://developer.android.com/reference/android/media/AudioManager#setCommunicationDevice(android.media.AudioDeviceInfo))。Android 对首选输入并不作强制路由保证，因此以实际输入确认，不能把模拟通过当成 M153 耳机验收。
+
+3.4.1/code9 保留手机麦克风配合听筒的播放选择，避免显式选择手机输入时把听筒改为扬声器；原生路由测试增加该组合断言。最终覆盖安装包为 3.4.1，网页/OTA 同步发布。

@@ -38,7 +38,7 @@ final class AudioInputs {
             for(Device d:communications)if(selected.equals("comm:"+d.key)&&RoutePolicy.headset(d.type)){comm=d;target=d;input=peer(d,inputs);break;}
             if(target==null)for(Device d:inputs)if(RoutePolicy.headset(d.type)&&selected.equals("comm:"+d.key)){target=d;input=d;break;}
             if(target==null)return new Plan(null,null,null,"所选麦克风已断开，请重新检测或选择");
-            if(comm==null){if(target.type==15)comm=best(communications,output.equals("speaker")?"speaker":"auto",true);else comm=peer(target,communications);}
+            if(comm==null){if(target.type==15)comm=best(communications,(output.equals("speaker")||output.equals("earpiece"))?output:"auto",true);else comm=peer(target,communications);}
         }else{
             comm=best(communications,output,false);if(comm==null)comm=best(communications,"auto",false);
             if(comm!=null){input=peer(comm,inputs);if(!RoutePolicy.headset(comm.type)){for(Device d:inputs)if(d.type==15){input=d;break;}}target=RoutePolicy.headset(comm.type)?comm:input;}

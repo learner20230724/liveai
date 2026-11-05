@@ -46,5 +46,23 @@
     "retiredRelay410": true,
     "webVersion": "3.4.0",
     "errors": []
+  },
+  "patchRelease": {
+    "version": "3.4.1",
+    "shellCode": 9,
+    "apk": {
+      "packageName": "cn.guihualab.liveai",
+      "versionCode": 9,
+      "versionName": "3.4.1",
+      "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a",
+      "sha256": "9bc39b462631a7a7a7428b908822f4bc6bb789b966ce39ffba45e14d14133ad6",
+      "size": 1218398,
+      "downloadUrl": "https://guihualab.cn/liveai/downloads/liveai-android-3.4.1.apk"
+    },
+    "otaSha256": "cbe5ae755f420453c7ab75af568d8f8b023d573b479d39a4f6fd073119589680",
+    "webApkOtaMatch": true,
+    "ipAndHttpsDownloadsVerified": true,
+    "manualPhoneInputKeepsEarpieceOutput": true,
+    "physicalDevice": false
   }
 }
