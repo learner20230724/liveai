@@ -195,5 +195,74 @@
     "noPackagedCredentials": true,
     "noAbiSpecificLibraries": true,
     "physicalDevice": false
+  },
+  "webPatch": {
+    "version": "3.3.1",
+    "shellVersion": "3.3.0",
+    "requiresNewApk": false,
+    "screenFrameRateHonored": true,
+    "controlsFixture": {
+      "settingsPersist": true,
+      "independentPersonaAndRules": true,
+      "userMemoryOptIn": true,
+      "sessionSettingsLockedDuringCall": true,
+      "playbackAdjustsDuringCall": true,
+      "toolRequestResultDisplayed": true,
+      "screenCaptureHonorsFps": true,
+      "noFabricatedServerTasks": true,
+      "physicalDevice": false,
+      "providerSimulated": true,
+      "playback": {
+        "actualWebAudio": true,
+        "rateChangedDuringAudio": true,
+        "chunks": 2,
+        "completed": 1,
+        "noEarlyAcknowledgements": true,
+        "scheduled": [
+          {
+            "chunk": "audio-0",
+            "end": 1.7905555555555555
+          },
+          {
+            "chunk": "audio-1",
+            "end": 3.7905555555555557
+          }
+        ],
+        "acks": [
+          {
+            "event": {
+              "action": "playback.chunk.completed",
+              "chunk_id": "audio-0",
+              "run_id": "run",
+              "turn_id": "turn"
+            },
+            "at": 1.7908390022675738
+          },
+          {
+            "event": {
+              "action": "playback.chunk.completed",
+              "chunk_id": "audio-1",
+              "run_id": "run",
+              "turn_id": "turn"
+            },
+            "at": 3.790657596371882
+          },
+          {
+            "event": {
+              "action": "playback.completed",
+              "run_id": "run",
+              "turn_id": "turn"
+            },
+            "at": 3.790657596371882
+          }
+        ],
+        "gain": 0.20000000298023224
+      },
+      "errors": []
+    },
+    "publicHtmlVerified": true,
+    "publicOtaVerified": true,
+    "otaSha256": "70e7805b1f355ce718600e5b53fa76c3c5474d4de8c0fe4aba9c3a81b69c5826",
+    "otaSize": 117000
   }
 }

@@ -276,7 +276,7 @@ export class LiveSession {
             audio: false,
           })
         : await navigator.mediaDevices.getDisplayMedia({
-            video: { frameRate: 1 },
+            video: { frameRate: this.settings.fps },
             audio: false,
           });
     if (this.stopped) {
