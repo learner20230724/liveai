@@ -1,0 +1,50 @@
+{
+  "version": "3.4.0",
+  "shellCode": 8,
+  "physicalDevice": false,
+  "nodeTests": 34,
+  "nativeUnitTests": {
+    "tests": 40,
+    "failures": 0,
+    "errors": 0
+  },
+  "webApkOtaMatch": true,
+  "otaSha256": "4185d90fd6ad8086911efe0b5aadc0289f3fe75e82cf902ecedf21650760bd4a",
+  "apk": {
+    "packageName": "cn.guihualab.liveai",
+    "versionCode": 8,
+    "versionName": "3.4.0",
+    "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a",
+    "sha256": "c6f33daf04307267744b4743072b3f1f9350f06e04d55564e4bbca74fb1213cc",
+    "size": 1218398,
+    "downloadUrl": "https://guihualab.cn/liveai/downloads/liveai-android-3.4.0.apk"
+  },
+  "ui": {
+    "nativeAndDevicesSimulated": true,
+    "physicalDevice": false,
+    "beforeCallEnumeration": true,
+    "manualChoicePersists": true,
+    "permissionDetectionDoesNotStartCall": true,
+    "actualInputNotAssumedFromSelection": true,
+    "meter": true,
+    "disconnectKeepsSelection": true,
+    "reconnectRetainsChoice": true,
+    "inCallPhoneChoice": true,
+    "callNotRestarted": true,
+    "noOverflow": true,
+    "errors": []
+  },
+  "noPackagedCredentials": true,
+  "ipAndHttpsDownloadsVerified": true,
+  "noAbiSpecificLibraries": true,
+  "public": {
+    "publicNavigation": true,
+    "publicScreenshotLoaded": true,
+    "projectEntry": true,
+    "productionLoginCatalogLogout": true,
+    "anonymousRejected": true,
+    "retiredRelay410": true,
+    "webVersion": "3.4.0",
+    "errors": []
+  }
+}

@@ -92,3 +92,11 @@ Android 官方约定：[MediaProjection](https://developer.android.com/media/gro
 公开 MOSS Live 接口拒绝 voice 参数，音色保持官网默认。跨会话记忆默认关闭，开启后用固定本机 user ID 与 memory_scope=user。可选本机时间工具只读取日期/时间/时区；真实工具请求、本机结果与官网事件通过脱敏、最多 80 项的会话快照显示，不写入对话历史。未接入电脑控制、文件或 Shell 工具。
 
 新增原生桥、播放和配置代码，需要同包名同签名的 3.3.0/code7 覆盖更新。网站及旧外壳 OTA 仍保留其他所有工作区入口；旧外壳显示更新设置能力的 APK 入口，不展示不会生效的原生设置。没有连接 M153，物理耳机/锁屏/音效仍需真机验收。
+
+## 手动选择麦克风（3.4.0 / code8）
+
+原生 audioDevices/selectAudioInput/refreshAudioDevices 桥为手机列出实际输入与可通话耳机，通话前后均可检测；audioInputsVersion 用于旧壳能力判断。新增独立输入选择，不以播放输出列表替代输入。选择为类型/地址/名称的本机摘要，Android 临时数字设备 ID 改变时可继续匹配；不把蓝牙地址发给网页。
+
+旧逻辑在 setCommunicationDevice 后立即查输入，可能错过异步出现的 SCO/BLE 麦克风。新逻辑监听通信设备和输入热插拔，进行有界延时复查，重新 setPreferredDevice；录音线程观察路由代次后停止/开始 AudioRecord。实际输入没有匹配期望设备时只向官网发送静音包，状态显示仍依据 getRoutedDevice。明确拒绝、5 秒未切换和断开都有实际错误状态，切页/锁屏不取消选择或通话。音量指示仅在正在通话且输入确认后更新。
+
+Android 官方接口：[AudioRecord](https://developer.android.com/reference/android/media/AudioRecord#setPreferredDevice(android.media.AudioDeviceInfo))、[AudioManager](https://developer.android.com/reference/android/media/AudioManager#setCommunicationDevice(android.media.AudioDeviceInfo))。Android 对首选输入并不作强制路由保证，因此以实际输入确认，不能把模拟通过当成 M153 耳机验收。

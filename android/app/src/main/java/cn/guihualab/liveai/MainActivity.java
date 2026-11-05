@@ -39,7 +39,7 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
     private CameraFrames cameraFrames;
     private boolean frontCamera, pendingCamera, pendingNativeStart;
     private String nativePrompt="";
-    private static final int CALL_PERMISSION=31, CAMERA_PERMISSION=32, GALLERY_PERMISSION=33, SAVE_BINARY=23, SCREEN_CONSENT=34;
+    private static final int CALL_PERMISSION=31, CAMERA_PERMISSION=32, GALLERY_PERMISSION=33, SAVE_BINARY=23, SCREEN_CONSENT=34,AUDIO_PERMISSION=35;
     private boolean pendingScreenConsent, resumeCameraAfterScreen;
     private String galleryRequestId,galleryPayload,pendingOutput;
     private final Handler startup = new Handler(Looper.getMainLooper());
@@ -172,6 +172,7 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
     @Override public void onRequestPermissionsResult(int requestCode,String[] permissions,int[] results) {
         super.onRequestPermissionsResult(requestCode,permissions,results);
         if (requestCode==MEDIA_PERMISSION) grantMedia();
+        if(requestCode==AUDIO_PERMISSION){LiveCallService.refreshInputs();event(message("refresh","audio-devices"));}
         if(requestCode==CALL_PERMISSION){if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED){pendingNativeStart=true;if(resumed)startNativeCall();}else event(message("error","请在系统设置允许 LiveAI 使用麦克风"));}
         if(requestCode==GALLERY_PERMISSION&&galleryRequestId!=null){String id=galleryRequestId,payload=galleryPayload;galleryRequestId=null;galleryPayload=null;if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)==PackageManager.PERMISSION_GRANTED)DirectTools.get(this).request(id,"saveImage",payload);else DirectTools.get(this).failRequest(id,"未获得相册保存权限，请在设置中允许后重试");}
         if(requestCode==CAMERA_PERMISSION&&checkSelfPermission(Manifest.permission.CAMERA)==PackageManager.PERMISSION_GRANTED){pendingCamera=true;if(resumed)startCamera();}
@@ -204,6 +205,10 @@ public final class MainActivity extends Activity implements CallEvents.Listener 
         @JavascriptInterface public void startCall(String prompt) { runOnUiThread(()->{if(trusted()&&resumed)requestNativeCall(prompt);}); }
         @JavascriptInterface public void endCall() { runOnUiThread(()->{if(!trusted())return;closeCamera();LiveCallService.end();}); }
         @JavascriptInterface public void muteCall(boolean muted) { if(trusted())LiveCallService.mute(muted); }
+        @JavascriptInterface public int audioInputsVersion(){return 1;}
+        @JavascriptInterface public String audioDevices(){return trusted()?LiveCallService.inputDevices(MainActivity.this).toString():"{}";}
+        @JavascriptInterface public boolean selectAudioInput(String value){if(!trusted()||value==null||!value.matches("auto|(?:mic|comm):[a-f0-9]{24}"))return false;getSharedPreferences("call-options",MODE_PRIVATE).edit().putString("input",value).apply();LiveCallService.input(value);return true;}
+        @JavascriptInterface public void refreshAudioDevices(){runOnUiThread(()->{if(!trusted())return;ArrayList<String> missing=new ArrayList<>();if(Build.VERSION.SDK_INT>=31&&checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT)!=PackageManager.PERMISSION_GRANTED)missing.add(Manifest.permission.BLUETOOTH_CONNECT);if(!missing.isEmpty()){requestPermissions(missing.toArray(new String[0]),AUDIO_PERMISSION);return;}LiveCallService.refreshInputs();event(message("refresh","audio-devices"));});}
         @JavascriptInterface public void audioRoute(String route) { if(trusted()&&route!=null&&route.matches("auto|speaker|earpiece|device:[0-9]+")){getSharedPreferences("call-options",MODE_PRIVATE).edit().putString("route",route).apply();LiveCallService.route(route);} }
         @JavascriptInterface public void toggleCamera() { runOnUiThread(()->{if(!trusted()||!resumed||!LiveCallService.active())return;if(cameraFrames!=null){closeCamera();return;}if(checkSelfPermission(Manifest.permission.CAMERA)!=PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{Manifest.permission.CAMERA},CAMERA_PERMISSION);else startCamera();}); }
         @JavascriptInterface public int callSettingsVersion(){return 1;}

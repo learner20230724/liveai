@@ -4,7 +4,7 @@ MOSS Live 工作台与独立 Android 客户端，包含实时语音、摄像头�
 
 [下载 APK](http://42.192.115.30:8182/downloads/liveai/liveai-latest.apk) · [HTTPS 备用](https://guihualab.cn/liveai/downloads/liveai-latest.apk) · [网页兼容入口](https://guihualab.cn/liveai/) · [规划 Lab](https://guihualab.cn/)
 
-## Android 3.3
+## Android 3.4
 
 同包名 `cn.guihualab.liveai`、同签名，直接覆盖安装旧版，保留本地数据。通用单 APK，不含 ABI 专用 `.so`，兼容 ARM64。原生能力变更需要本次 APK；后续页面继续完整 ZIP OTA 更新。
 
@@ -38,6 +38,14 @@ MOSS VL 已实测可用，入口显示实际请求结果。MOSS VL Realtime 是�
 「连接与任务事件」显示官网实际返回的连接/配置/工具事件及本机执行结果，区分来源，只在当前会话内保留最近 80 条，并去除凭据/内部推理字段。默认不制造后台任务进度。可选「允许读取本机时间」只注册 liveai_current_time，收到真实函数请求后读取时间/时区并回传，不接入文件、Shell 或任意网络执行。官网实际确认了工具注册、请求、结果接收，并在结果之后继续返回文字/音频；这不等同于完整后台模型过程可见，也不代表已经支持自主操控电脑。
 
 可复查的同协议项目包括 [OmniStudio](https://github.com/kunpengtalk/OmniStudio) 的桌面工作台 MOSS 适配器（当前 README 标注 macOS Apple Silicon），以及 [CallPilot](https://github.com/tianye1999/callpilot) 的电话助手适配器。二者是第三方项目；不是本项目已经安装的完整桌面执行器。配置依据及实测边界见 [verification.md](docs/verification.md)。
+
+## 手机麦克风选择（3.4.0 / code8）
+
+手机进入「音频设备 → 选择麦克风」，可在通话前检测输入，手动选择蓝牙、有线/USB 或手机麦克风。选项来自 Android 实际输入及通话设备枚举；媒体输出专用 A2DP 不冒充可录音麦克风。蓝牙通话输入尚未出现时，显示等待确认；「重新检测」会刷新列表，并在需要时申请蓝牙连接权限，不会自行开始通话。
+
+选择保存在当前手机，通话中可切换。蓝牙路由异步完成后重新枚举、绑定输入，并在录音线程中停止/重新开始录音以应用路由；监听设备及通话路由变化，并在 250/750/1500/3000/5200 ms 有界复查。界面分别显示已选择设备与 AudioRecord.getRoutedDevice 实际输入，以及录音音量。手动选择设备断开时不改写为自动，错误状态可见；只有实际输入与期望输入匹配时才上传采集 PCM，未确认时发送静音 PCM 保持协议。系统强制路由仍可能拒绝切换，这种情况不会伪装成功。
+
+本次修改原生音频代码，需要同签名覆盖安装 3.4.0/code8；网页和 APP OTA 同时更新。旧外壳保留通话播放选项，并显示新版麦克风选择的更新入口。自动化测试覆盖延迟蓝牙输入、拒绝路由、断开/重连、输入与输出偏好冲突、权限及选择持久化；没有连接 M153，真实蓝牙录音仍需手机确认。
 
 ## 本地运行
 

@@ -1,0 +1,24 @@
+package cn.guihualab.liveai;
+import android.app.Application;import android.content.*;import android.os.Looper;import org.json.*;import org.junit.Test;import org.junit.runner.RunWith;import org.robolectric.*;import org.robolectric.annotation.Config;import org.robolectric.android.controller.*;import android.webkit.WebView;import org.robolectric.util.ReflectionHelpers;import java.util.*;import static org.junit.Assert.*;import static org.robolectric.Shadows.shadowOf;
+@RunWith(RobolectricTestRunner.class) @Config(sdk=34)
+public class AudioInputsTest {
+ private final AudioInputs.Device phone=new AudioInputs.Device(1,15,"Phone","bottom"),speaker=new AudioInputs.Device(2,2,"Phone","speaker"),bt=new AudioInputs.Device(3,7,"My headset","bt-address"),btInput=new AudioInputs.Device(4,7,"My headset","bt-address");
+ @Test public void asynchronousBluetoothInputIsNotMistakenForPhoneAndBecomesConfirmedWhenItArrives() throws Exception {
+  AudioInputs.Plan pending=AudioInputs.plan(List.of(phone),List.of(speaker,bt),"auto","auto");assertEquals(bt,pending.target);assertNull(pending.input);assertFalse(AudioInputs.matches(pending,phone));assertEquals("pending",AudioInputs.status(pending,phone,"",1000));assertEquals("mismatch",AudioInputs.status(pending,phone,"",5200));
+  AudioInputs.Plan ready=AudioInputs.plan(List.of(phone,btInput),List.of(speaker,bt),"comm:"+bt.key,"auto");assertEquals(btInput,ready.input);assertTrue(AudioInputs.matches(ready,btInput));assertEquals("active",AudioInputs.status(ready,btInput,"",1000));assertFalse(AudioInputs.matches(ready,phone));
+  JSONArray choices=AudioInputs.choices(List.of(phone,btInput),List.of(speaker,bt));assertEquals(2,choices.length());assertEquals("comm:"+bt.key,choices.getJSONObject(0).getString("id"));assertTrue(choices.getJSONObject(0).getBoolean("detected"));assertFalse(choices.toString().contains("bt-address"));assertEquals("mic:"+btInput.key,AudioInputs.choices(List.of(phone,btInput),List.of(bt),"mic:"+btInput.key).getJSONObject(0).getString("id"));assertEquals(btInput,AudioInputs.plan(List.of(phone,btInput),List.of(),"comm:"+btInput.key,"auto").input);
+ }
+ @Test public void explicitInputWinsOverOutputPreferenceAndMissingDeviceNeverSilentlyUsesPhone(){
+  AudioInputs.Plan chosen=AudioInputs.plan(List.of(phone,btInput),List.of(speaker,bt),"comm:"+bt.key,"speaker");assertEquals(bt,chosen.communication);assertEquals(btInput,chosen.input);
+  AudioInputs.Plan missing=AudioInputs.plan(List.of(phone),List.of(speaker),"comm:"+bt.key,"auto");assertFalse(missing.error.isEmpty());assertFalse(AudioInputs.matches(missing,phone));assertEquals("unavailable",AudioInputs.status(missing,phone,"",100));
+  AudioInputs.Plan selectedPhone=AudioInputs.plan(List.of(phone,btInput),List.of(speaker,bt),"mic:"+phone.key,"auto");assertEquals(phone,selectedPhone.input);assertEquals(speaker,selectedPhone.communication);assertFalse(AudioInputs.matches(selectedPhone,btInput));
+ }
+ @Test public void pairingRejectsAnotherHeadsetAndMusicOutputNeverBecomesAMicrophone() throws Exception {
+  AudioInputs.Device other=new AudioInputs.Device(8,7,"My headset","other-address"),music=new AudioInputs.Device(9,8,"My headset","bt-address");assertFalse(AudioInputs.pair(bt,other));assertFalse(AudioInputs.pair(bt,music));assertFalse(AudioInputs.microphone(8));
+  assertEquals(1,AudioInputs.choices(List.of(phone),List.of(speaker,music)).length());assertEquals("failed",AudioInputs.status(AudioInputs.plan(List.of(phone),List.of(speaker,bt),"auto","auto"),phone,"denied",100));
+  AudioInputs.Device replugged=new AudioInputs.Device(99,7,"My headset","bt-address");assertEquals(bt.key,replugged.key);assertTrue(AudioInputs.pair(bt,replugged));
+ }
+ @Test public void trustedBridgePersistsOnlyValidSelectionsWithoutStartingACall() throws Exception {
+  ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).create().start().resume();try{MainActivity activity=controller.get();MainActivity.Bridge bridge=activity.new Bridge();WebView view=ReflectionHelpers.getField(activity,"web");view.getWebViewClient().onPageStarted(view,NavigationPolicy.HOME,null);assertEquals(1,bridge.audioInputsVersion());assertFalse(bridge.selectAudioInput("device:1"));assertFalse(bridge.selectAudioInput("mic:arbitrary-input"));assertTrue(bridge.selectAudioInput("comm:"+bt.key));assertEquals("comm:"+bt.key,activity.getSharedPreferences("call-options",Context.MODE_PRIVATE).getString("input",""));assertEquals("comm:"+bt.key,new JSONObject(bridge.audioDevices()).getString("selected"));assertFalse(LiveCallService.active());view.getWebViewClient().onPageStarted(view,"https://example.com",null);assertFalse(bridge.selectAudioInput("auto"));assertEquals("{}",bridge.audioDevices());}finally{controller.pause().stop().destroy();}
+ }
+}

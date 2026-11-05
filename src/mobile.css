@@ -19,3 +19,5 @@
 .image-job.queued .image-job-error{color:#788463}.paid-tools .alert{display:block;line-height:1.8}.image-job-list[aria-live]{align-self:start}
 
 .simple-tools{gap:7px;justify-content:space-between}.simple-tools button,.simple-tools .screen-upgrade{min-width:0;flex:1;padding:11px 5px}.screen-upgrade{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#7d8d83;font-size:11px;text-decoration:none;border-radius:12px}.screen-share-status{display:inline-flex;align-items:center;justify-content:center;gap:7px;font-size:11px;color:#316a4c;background:#e8f0e5;border-radius:20px;padding:7px 12px;margin-bottom:15px}
+
+.audio-detect-row{display:flex;align-items:center;justify-content:space-between;gap:12px}.audio-detect-row .simple-secondary{width:auto;margin:0;padding:10px 14px}.audio-requested,.audio-route-state{font-size:13px;line-height:1.6;margin:0;color:#647563;overflow-wrap:anywhere}.audio-route-state{color:#8a5836}.audio-level{display:grid;gap:8px}.audio-level meter{width:100%;height:16px;accent-color:#27725a}

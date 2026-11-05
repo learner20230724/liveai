@@ -6,8 +6,8 @@ android {
         applicationId 'cn.guihualab.liveai'
         minSdk 26
         targetSdk 36
-        versionCode 7
-        versionName '3.3.0'
+        versionCode 8
+        versionName '3.4.0'
         buildConfigField 'String', 'WEB_UPDATE_ENDPOINT', '"https://guihualab.cn/liveai/app-updates/"'
         buildConfigField 'String', 'WEB_UPDATE_CHANNEL', '"liveai-stable"'
     }

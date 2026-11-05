@@ -20,10 +20,12 @@ final class NativeAudio implements CallAudio {
     private AudioRecord recorder;private AudioTrack track;private AudioFocusRequest focusRequest;private AcousticEchoCanceler echo;private NoiseSuppressor noise;
     private final BlockingQueue<Item> queue=new LinkedBlockingQueue<>(512);private final PlaybackLedger ledger=new PlaybackLedger();private final Object outputLock=new Object();
     private volatile float playbackRate=1,playbackVolume=1;private volatile boolean running,muted,focused=true;private volatile String preference="auto";private volatile int epoch;private final AtomicLong queuedBytes=new AtomicLong();
+    private volatile String selectedInput="auto",routeFailure="";private volatile AudioInputs.Plan inputPlan;private volatile long routeStarted;private volatile int inputEpoch;private volatile boolean inputConfirmed;private volatile float inputLevel;
+    private int preferredInputId=-1,routeAttempt;private long levelAt;private android.media.AudioManager.OnCommunicationDeviceChangedListener communicationChanged;
     private long lastHead,headWrap;private Thread capture,playback,monitor;
     private final AudioDeviceCallback devices=new AudioDeviceCallback(){@Override public void onAudioDevicesAdded(AudioDeviceInfo[] added){applyRoute();}@Override public void onAudioDevicesRemoved(AudioDeviceInfo[] removed){applyRoute();}};
     private static final class Item {final byte[] bytes;final PlaybackLedger.Chunk context;Item(byte[] b,PlaybackLedger.Chunk c){bytes=b;context=c;}}
-    NativeAudio(Context context,Listener listener){this.context=context;manager=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);this.listener=listener;}
+    NativeAudio(Context context,Listener listener){this.context=context;manager=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);this.listener=listener;preference=context.getSharedPreferences("call-options",Context.MODE_PRIVATE).getString("route","auto");selectedInput=context.getSharedPreferences("call-options",Context.MODE_PRIVATE).getString("input","auto");}
     @SuppressLint("MissingPermission") public void start() throws Exception {
         if(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)throw new SecurityException("麦克风权限未获允许");
         manager.setMode(AudioManager.MODE_IN_COMMUNICATION);
@@ -37,15 +39,19 @@ final class NativeAudio implements CallAudio {
         if(recorder.getState()!=AudioRecord.STATE_INITIALIZED||track.getState()!=AudioTrack.STATE_INITIALIZED)throw new IllegalStateException("当前设备无法初始化通话音频");
         recorder.addOnRoutingChangedListener(r->reportRoute(),handler);track.addOnRoutingChangedListener(r->reportRoute(),handler);manager.registerAudioDeviceCallback(devices,handler);
         try{if(AcousticEchoCanceler.isAvailable()){echo=AcousticEchoCanceler.create(recorder.getAudioSessionId());if(echo!=null)echo.setEnabled(true);}if(NoiseSuppressor.isAvailable()){noise=NoiseSuppressor.create(recorder.getAudioSessionId());if(noise!=null)noise.setEnabled(true);}}catch(RuntimeException ignored){}
-        settings(playbackRate,playbackVolume);running=true;track.play();applyRoute();
+        settings(playbackRate,playbackVolume);running=true;track.play();
+        if(Build.VERSION.SDK_INT>=31){communicationChanged=d->settleInput(false);manager.addOnCommunicationDeviceChangedListener(context.getMainExecutor(),communicationChanged);}handler.post(this::applyRoute);
         capture=new Thread(this::captureLoop,"liveai-microphone");playback=new Thread(this::playbackLoop,"liveai-speaker");monitor=new Thread(this::monitorLoop,"liveai-playback-ack");capture.start();playback.start();monitor.start();
         handler.postDelayed(this::reportRoute,800);
     }
-    private void captureLoop(){android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);byte[] frame=new byte[640];boolean recording=false;try{while(running){
+    private void captureLoop(){android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);byte[] frame=new byte[640];boolean recording=false;int routeGeneration=inputEpoch;try{while(running){
+        if(routeGeneration!=inputEpoch){if(recording){recorder.stop();recording=false;}routeGeneration=inputEpoch;}
         if(muted||!focused){if(recording){recorder.stop();recording=false;}Arrays.fill(frame,(byte)0);listener.microphone(frame.clone());Thread.sleep(20);continue;}
         if(!recording){recorder.startRecording();recording=true;handler.post(this::reportRoute);}
         int offset=0;while(running&&offset<frame.length&&!muted&&focused){int n=recorder.read(frame,offset,frame.length-offset,AudioRecord.READ_BLOCKING);if(n<0)throw new IllegalStateException("麦克风被系统暂停，请检查权限或耳机连接");offset+=n;}
-        if(offset==frame.length)listener.microphone(frame.clone());
+        if(offset==frame.length){
+            if(!inputConfirmed){Arrays.fill(frame,(byte)0);inputLevel=0;}else{long sum=0;for(int i=0;i<frame.length;i+=2){int v=(short)((frame[i]&255)|(frame[i+1]<<8));sum+=(long)v*v;}float level=Math.min(1,(float)Math.sqrt((double)sum/(frame.length/2))/6000);long now=SystemClock.elapsedRealtime();inputLevel=now-levelAt>350?level:Math.max(inputLevel,level);if(now-levelAt>350)levelAt=now;}
+            listener.microphone(frame.clone());}
     }}catch(Exception e){if(running)listener.error("麦克风读取失败，请检查设备权限和音频占用");}finally{try{recorder.stop();}catch(Exception ignored){}}}
     private void playbackLoop(){android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);String previous="";while(running){try{Item item=queue.poll(200,TimeUnit.MILLISECONDS);if(item==null)continue;queuedBytes.addAndGet(-item.bytes.length);
         while(running&&!item.context.cancelled&&!previous.isEmpty()&&!previous.equals(item.context.turnKey())&&ledger.pending(previous))Thread.sleep(5);
@@ -70,18 +76,35 @@ final class NativeAudio implements CallAudio {
     }
     public void muted(boolean value){muted=value;handler.post(this::reportRoute);}
     public void route(String value){preference=value;handler.post(this::applyRoute);}
-    @SuppressWarnings("deprecation") private void applyRoute(){if(!running)return;try{
-        AudioDeviceInfo selected=null;
-        if(Build.VERSION.SDK_INT>=31){List<AudioDeviceInfo> choices=manager.getAvailableCommunicationDevices();int best=-1;for(AudioDeviceInfo d:choices){int rank=RoutePolicy.rank(d.getType());if(preference.equals("speaker"))rank=d.getType()==AudioDeviceInfo.TYPE_BUILTIN_SPEAKER?100:0;else if(preference.equals("earpiece"))rank=d.getType()==AudioDeviceInfo.TYPE_BUILTIN_EARPIECE?100:0;else if(preference.startsWith("device:"))rank=preference.equals("device:"+d.getId())?200:0;if(rank>best&&rank>0){best=rank;selected=d;}}
-            if(selected==null){for(AudioDeviceInfo d:choices)if(RoutePolicy.rank(d.getType())>best){best=RoutePolicy.rank(d.getType());selected=d;}}
-            if(selected!=null&&!manager.setCommunicationDevice(selected)){reportRoute();return;}
-        }else{boolean bt=false,wired=false;for(AudioDeviceInfo d:manager.getDevices(AudioManager.GET_DEVICES_OUTPUTS)){bt|=d.getType()==AudioDeviceInfo.TYPE_BLUETOOTH_SCO||d.getType()==AudioDeviceInfo.TYPE_BLUETOOTH_A2DP;wired|=RoutePolicy.headset(d.getType());}if(preference.equals("auto")&&bt){manager.startBluetoothSco();manager.setBluetoothScoOn(true);manager.setSpeakerphoneOn(false);}else{manager.setBluetoothScoOn(false);manager.stopBluetoothSco();manager.setSpeakerphoneOn(preference.equals("speaker")||(!preference.equals("earpiece")&&!wired));}}
-        AudioDeviceInfo input=null;if(selected!=null){for(AudioDeviceInfo d:manager.getDevices(AudioManager.GET_DEVICES_INPUTS)){boolean same=d.getType()==selected.getType()||d.getProductName().toString().equals(selected.getProductName().toString());if(RoutePolicy.headset(selected.getType())&&same){input=d;break;}if(!RoutePolicy.headset(selected.getType())&&d.getType()==AudioDeviceInfo.TYPE_BUILTIN_MIC)input=d;}}
-        recorder.setPreferredDevice(input);if(selected!=null)track.setPreferredDevice(selected);handler.postDelayed(this::reportRoute,500);
-    }catch(SecurityException denied){listener.routing("蓝牙权限未获允许，等待实际输入设备", "系统默认",0);}catch(Exception ignored){reportRoute();}}
-    private void reportRoute(){if(!running)return;AudioDeviceInfo input=recorder.getRoutedDevice(),output=track.getRoutedDevice();String name=muted?"麦克风已静音":input==null?"正在确认输入设备":RoutePolicy.label(input.getType())+" · "+input.getProductName();listener.routing(name,output==null?"正在确认输出设备":output.getProductName().toString(),input==null?0:input.getType());}
+    public void input(String value){selectedInput=value;inputConfirmed=false;inputLevel=0;handler.post(this::applyRoute);}
+    public void refreshInputs(){handler.post(this::applyRoute);}
+    @SuppressWarnings("deprecation") private void applyRoute(){
+        if(!running)return;routeStarted=SystemClock.elapsedRealtime();routeFailure="";inputConfirmed=false;preferredInputId=-1;int attempt=++routeAttempt;
+        try{
+            inputPlan=AudioInputs.plan(AudioInputs.sources(manager),AudioInputs.communications(manager),selectedInput,preference);
+            AudioInputs.Device comm=inputPlan.communication;
+            if(Build.VERSION.SDK_INT>=31){AudioInputs.Device current=AudioInputs.Device.of(manager.getCommunicationDevice());if(comm!=null&&(current==null||current.id!=comm.id)&&!manager.setCommunicationDevice(comm.handle))routeFailure="系统拒绝切换通话设备";}
+            else{boolean bluetooth=inputPlan.target!=null&&AudioInputs.bluetooth(inputPlan.target.type);manager.setBluetoothScoOn(bluetooth);if(bluetooth)manager.startBluetoothSco();else manager.stopBluetoothSco();manager.setSpeakerphoneOn(preference.equals("speaker"));}
+            if(comm!=null&&!track.setPreferredDevice(comm.handle))routeFailure="系统拒绝切换播放设备";
+            settleInput(true);
+        }catch(SecurityException denied){routeFailure="蓝牙权限未获允许";reportRoute();}catch(Exception failure){routeFailure="未能切换麦克风，请重新检测";reportRoute();}
+        for(long delay:new long[]{250,750,1500,3000,5200})handler.postDelayed(()->{if(running&&routeAttempt==attempt)settleInput(true);},delay);
+    }
+    private void settleInput(boolean retry){if(!running)return;try{
+        inputPlan=AudioInputs.plan(AudioInputs.sources(manager),AudioInputs.communications(manager),selectedInput,preference);
+        AudioInputs.Device desired=inputPlan.input,actual=AudioInputs.Device.of(recorder.getRoutedDevice());
+        if(desired!=null&&(desired.id!=preferredInputId||(retry&&!AudioInputs.matches(inputPlan,actual)))){
+            if(recorder.setPreferredDevice(desired.handle)){boolean changed=preferredInputId!=desired.id;preferredInputId=desired.id;if(changed||retry)inputEpoch++;}else routeFailure="系统拒绝切换麦克风";
+        }
+        reportRoute();
+    }catch(SecurityException denied){routeFailure="蓝牙权限未获允许";inputConfirmed=false;}catch(Exception failure){routeFailure="未能确认麦克风，请重新检测";inputConfirmed=false;}}
+    private void reportRoute(){if(!running)return;AudioDeviceInfo input=recorder.getRoutedDevice(),output=track.getRoutedDevice();AudioInputs.Device actual=AudioInputs.Device.of(input);inputConfirmed=AudioInputs.matches(inputPlan,actual);if(!inputConfirmed||muted)inputLevel=0;String name=muted?"麦克风已静音":input==null?"正在确认输入设备":RoutePolicy.label(input.getType())+" · "+input.getProductName();listener.routing(name,output==null?"正在确认输出设备":output.getProductName().toString(),input==null?0:input.getType());}
+    public JSONObject inputs(){JSONObject result=AudioInputs.catalog(context);try{
+        AudioInputs.Device actual=AudioInputs.Device.of(recorder==null?null:recorder.getRoutedDevice());String status=AudioInputs.status(inputPlan,actual,routeFailure,SystemClock.elapsedRealtime()-routeStarted);String message=inputPlan!=null&&!inputPlan.error.isEmpty()?inputPlan.error:status.equals("failed")?routeFailure:status.equals("mismatch")?"系统未切换到所选麦克风，已暂停上传":status.equals("pending")?"正在切换麦克风":"";
+        result.put("selected",selectedInput).put("status",status).put("message",message).put("requested",inputPlan==null||inputPlan.target==null?"":inputPlan.target.label()).put("actual",actual==null?"":actual.label()).put("actualId",actual==null?0:actual.id).put("actualType",actual==null?0:actual.type).put("uploadEnabled",inputConfirmed&&!muted).put("level",inputConfirmed&&!muted?inputLevel:0);
+    }catch(Exception ignored){}return result;}
     public JSONArray routes(){JSONArray result=new JSONArray();try{if(Build.VERSION.SDK_INT>=31)for(AudioDeviceInfo d:manager.getAvailableCommunicationDevices())result.put(new JSONObject().put("id","device:"+d.getId()).put("name",d.getProductName()).put("type",d.getType()));}catch(Exception ignored){}return result;}
-    @SuppressWarnings("deprecation") public void close(){running=false;epoch++;if(capture!=null)capture.interrupt();if(playback!=null)playback.interrupt();if(monitor!=null)monitor.interrupt();handler.removeCallbacksAndMessages(null);try{manager.unregisterAudioDeviceCallback(devices);}catch(Exception ignored){}try{if(recorder!=null)recorder.stop();}catch(Exception ignored){}synchronized(outputLock){try{if(track!=null){track.pause();track.flush();track.release();}}catch(Exception ignored){}ledger.clear();}
+    @SuppressWarnings("deprecation") public void close(){running=false;epoch++;if(capture!=null)capture.interrupt();if(playback!=null)playback.interrupt();if(monitor!=null)monitor.interrupt();handler.removeCallbacksAndMessages(null);try{if(Build.VERSION.SDK_INT>=31&&communicationChanged!=null)manager.removeOnCommunicationDeviceChangedListener(communicationChanged);manager.unregisterAudioDeviceCallback(devices);}catch(Exception ignored){}try{if(recorder!=null)recorder.stop();}catch(Exception ignored){}synchronized(outputLock){try{if(track!=null){track.pause();track.flush();track.release();}}catch(Exception ignored){}ledger.clear();}
         try{if(echo!=null)echo.release();if(noise!=null)noise.release();}catch(Exception ignored){}if(capture!=null)try{capture.join(400);}catch(Exception ignored){}try{if(recorder!=null)recorder.release();}catch(Exception ignored){}if(focusRequest!=null)manager.abandonAudioFocusRequest(focusRequest);try{if(Build.VERSION.SDK_INT>=31)manager.clearCommunicationDevice();else{manager.setBluetoothScoOn(false);manager.stopBluetoothSco();}manager.setMode(AudioManager.MODE_NORMAL);}catch(Exception ignored){}queue.clear();queuedBytes.set(0);
     }
 }
