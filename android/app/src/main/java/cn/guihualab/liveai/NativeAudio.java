@@ -20,12 +20,12 @@ final class NativeAudio implements CallAudio {
     private AudioRecord recorder;private AudioTrack track;private AudioFocusRequest focusRequest;private AcousticEchoCanceler echo;private NoiseSuppressor noise;
     private final BlockingQueue<Item> queue=new LinkedBlockingQueue<>(512);private final PlaybackLedger ledger=new PlaybackLedger();private final Object outputLock=new Object();
     private volatile float playbackRate=1,playbackVolume=1;private volatile boolean running,muted,focused=true;private volatile String preference="auto";private volatile int epoch;private final AtomicLong queuedBytes=new AtomicLong();
-    private volatile String selectedInput="auto",routeFailure="";private volatile AudioInputs.Plan inputPlan;private volatile long routeStarted;private volatile int inputEpoch;private volatile boolean inputConfirmed;private volatile float inputLevel;
+    private volatile String selectedInput="",routeFailure="";private volatile AudioInputs.Plan inputPlan;private volatile long routeStarted;private volatile int inputEpoch;private volatile boolean inputConfirmed;private volatile float inputLevel;
     private int preferredInputId=-1,routeAttempt;private long levelAt;private android.media.AudioManager.OnCommunicationDeviceChangedListener communicationChanged;
     private long lastHead,headWrap;private Thread capture,playback,monitor;
     private final AudioDeviceCallback devices=new AudioDeviceCallback(){@Override public void onAudioDevicesAdded(AudioDeviceInfo[] added){applyRoute();}@Override public void onAudioDevicesRemoved(AudioDeviceInfo[] removed){applyRoute();}};
     private static final class Item {final byte[] bytes;final PlaybackLedger.Chunk context;Item(byte[] b,PlaybackLedger.Chunk c){bytes=b;context=c;}}
-    NativeAudio(Context context,Listener listener){this.context=context;manager=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);this.listener=listener;preference=context.getSharedPreferences("call-options",Context.MODE_PRIVATE).getString("route","auto");selectedInput=context.getSharedPreferences("call-options",Context.MODE_PRIVATE).getString("input","auto");}
+    NativeAudio(Context context,Listener listener){this.context=context;manager=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);this.listener=listener;preference=context.getSharedPreferences("call-options",Context.MODE_PRIVATE).getString("route","auto");selectedInput=AudioInputs.selection(context);}
     @SuppressLint("MissingPermission") public void start() throws Exception {
         if(context.checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)throw new SecurityException("麦克风权限未获允许");
         manager.setMode(AudioManager.MODE_IN_COMMUNICATION);

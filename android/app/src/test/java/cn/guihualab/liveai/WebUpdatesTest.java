@@ -26,4 +26,12 @@ public class WebUpdatesTest {
         assertTrue(WebUpdates.channelAllowed("liveai-stable"));assertFalse(WebUpdates.channelAllowed("stable"));assertFalse(WebUpdates.channelAllowed("beta"));assertFalse(WebUpdates.channelAllowed(""));
         Context c=RuntimeEnvironment.getApplication();c.getSharedPreferences("web-updates",Context.MODE_PRIVATE).edit().putString("active","f".repeat(64)).commit();assertNull(WebUpdates.active(c));
     }
+    @Test public void installingNewShellUsesBundledPageWithoutErasingPrivatePreferences() {
+        Context c=RuntimeEnvironment.getApplication();SharedPreferences p=c.getSharedPreferences("web-updates",Context.MODE_PRIVATE);SharedPreferences data=c.getSharedPreferences("call-options",Context.MODE_PRIVATE);
+        data.edit().putString("input","keep-selected-microphone").commit();p.edit().clear().putInt("bundled-shell",BuildConfig.VERSION_CODE-1).putString("active","a".repeat(64)).putString("healthy","a".repeat(64)).putString("blocked","b".repeat(64)).commit();WebUpdates.shellChanged(c);assertEquals("",p.getString("active",""));assertEquals("",p.getString("blocked",""));assertEquals("keep-selected-microphone",data.getString("input",""));
+        p.edit().putString("active","c".repeat(64)).commit();WebUpdates.shellChanged(c);assertEquals("c".repeat(64),p.getString("active",""));
+    }
+    @Test public void obsoleteManifestCannotReplaceNewBundledPage() {
+        assertFalse(WebUpdates.notOlderThanBundled("3.4.1"));assertTrue(WebUpdates.notOlderThanBundled(BuildConfig.VERSION_NAME));assertTrue(WebUpdates.notOlderThanBundled("99.0.0"));assertFalse(WebUpdates.notOlderThanBundled("invalid"));
+    }
 }

@@ -35,13 +35,25 @@ final class WebUpdates {
         p.edit().putString("blocked",current).putString("active",healthy).commit();
         return true;
     }
+    static void shellChanged(Context c) {
+        SharedPreferences p=prefs(c);
+        if(p.getInt("bundled-shell",0)<SHELL_VERSION)p.edit().remove("active").remove("healthy").remove("blocked").putInt("bundled-shell",SHELL_VERSION).commit();
+    }
+    static boolean notOlderThanBundled(String version) {
+        try {
+            if(version==null||!version.matches("[0-9]{1,6}\\.[0-9]{1,6}\\.[0-9]{1,6}"))return false;
+            String[] candidate=version.split("\\."),bundled=BuildConfig.VERSION_NAME.split("\\.");
+            for(int i=0;i<3;i++){int n=Integer.parseInt(candidate[i]),b=Integer.parseInt(bundled[i]);if(n!=b)return n>b;}return true;
+        }catch(Exception invalid){return false;}
+    }
     static void check(Context c) {
+        shellChanged(c);
         rollback(c);
         SharedPreferences p=prefs(c);
         String current=p.getString("active",""), healthy=p.getString("healthy","");
         try {
             JSONObject manifest=new JSONObject(new String(download("latest.json?t="+System.currentTimeMillis(),16384),StandardCharsets.UTF_8));
-            if(!channelAllowed(manifest.optString("channel"))) return;
+            if(!channelAllowed(manifest.optString("channel"))||!notOlderThanBundled(manifest.optString("version"))) return;
             String version=manifest.getString("sha256");
             if (!UpdateBundle.compatible(version,manifest.getInt("minShellVersion"),SHELL_VERSION)) return;
             if (version.equals(current) || version.equals(p.getString("blocked",""))) return;

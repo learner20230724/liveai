@@ -1,0 +1,57 @@
+{
+  "version": "3.5.0",
+  "physicalDevice": false,
+  "nodeTests": 34,
+  "nativeUnitTests": {
+    "tests": 43,
+    "failures": 0,
+    "errors": 0
+  },
+  "ui": {
+    "nativeAndDevicesSimulated": true,
+    "physicalDevice": false,
+    "beforeCallEnumeration": true,
+    "headerDeviceList": true,
+    "legacyUpgradeAction": true,
+    "requiresExplicitChoice": true,
+    "noAutomaticOption": true,
+    "disconnectedDeviceNotListed": true,
+    "manualChoicePersists": true,
+    "permissionDetectionDoesNotStartCall": true,
+    "actualInputNotAssumedFromSelection": true,
+    "meter": true,
+    "disconnectKeepsSelection": true,
+    "reconnectRetainsChoice": true,
+    "inCallPhoneChoice": true,
+    "callNotRestarted": true,
+    "noOverflow": true,
+    "errors": []
+  },
+  "apk": {
+    "packageName": "cn.guihualab.liveai",
+    "versionCode": 10,
+    "versionName": "3.5.0",
+    "certificateSha256": "7b317e16857f30d4328a234fe86666e09aa6089c8690b582c872c18d42eac40a",
+    "sha256": "d9eb6f61a4cc09885d75b677f93086aa5824a283837f047cfdaac835713f4a54",
+    "size": 1222494,
+    "downloadUrl": "https://guihualab.cn/liveai/downloads/liveai-android-3.5.0.apk"
+  },
+  "otaSha256": "821f054066556f4c367fe66cfeec4667fff4c30d9b3f74046ea02628a8f47464",
+  "webApkOtaMatch": true,
+  "publicHtmlMatchesBuild": true,
+  "ipAndHttpsDownloadsVerified": true,
+  "noPackagedCredentials": true,
+  "noAbiSpecificLibraries": true,
+  "newShellUsesBundledPage": true,
+  "olderOtaRejected": true,
+  "public": {
+    "publicNavigation": true,
+    "publicScreenshotLoaded": true,
+    "projectEntry": true,
+    "productionLoginCatalogLogout": true,
+    "anonymousRejected": true,
+    "retiredRelay410": true,
+    "webVersion": "3.5.0",
+    "errors": []
+  }
+}

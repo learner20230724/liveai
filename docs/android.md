@@ -102,3 +102,9 @@ Android 官方约定：[MediaProjection](https://developer.android.com/media/gro
 Android 官方接口：[AudioRecord](https://developer.android.com/reference/android/media/AudioRecord#setPreferredDevice(android.media.AudioDeviceInfo))、[AudioManager](https://developer.android.com/reference/android/media/AudioManager#setCommunicationDevice(android.media.AudioDeviceInfo))。Android 对首选输入并不作强制路由保证，因此以实际输入确认，不能把模拟通过当成 M153 耳机验收。
 
 3.4.1/code9 保留手机麦克风配合听筒的播放选择，避免显式选择手机输入时把听筒改为扬声器；原生路由测试增加该组合断言。最终覆盖安装包为 3.4.1，网页/OTA 同步发布。
+
+## 首页具体设备列表（3.5.0 / code10）
+
+「手机直连 MOSS」右侧是常驻选择麦克风列表和刷新按钮；不再需要先打开音频面板。麦克风和播放选择中均无自动/优先耳机项。未选具体设备（含旧自动偏好）时，网页与原生入口均要求先选择；设备断开保留原偏好但从当前设备列表移除，不偷偷切换到手机。无原生枚举接口的旧外壳直接显示 APK 更新入口。
+
+升级原生外壳时只重置 OTA active/healthy/blocked 网页标记一次，优先使用本次新内置页面。下一次同壳冷启动不重置；在线更新版本不得低于内置版本。本地 origin、密码、通话记录和选择偏好不变。该处理修复“新 APK 仍可能加载旧缓存页面”的交付问题；没有声称观察过用户手机的缓存状态。
