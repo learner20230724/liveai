@@ -56,7 +56,7 @@ export default function MobileWorkspace({section, onError, onNotice}) {
     </section>}
     <div hidden={auth!==true}>
       <section hidden={section!=='images'} aria-label="图像工作室"><ImageStudio onError={problem} onNotice={onNotice}/></section>
-      <section hidden={section!=='vision'} aria-label="视觉理解"><VisionStudio onError={problem}/></section>
+      <section hidden={section!=='vision'} aria-label="视觉理解"><VisionStudio onError={problem} active={section==='vision'&&auth===true}/></section>
       <section hidden={section!=='models'} aria-label="模型与费用"><Models catalog={catalog} stats={stats} onRefresh={()=>load().then(()=>onNotice('信息已刷新')).catch(e=>problem(e.message,e))}/></section>
     </div>
   </div>;

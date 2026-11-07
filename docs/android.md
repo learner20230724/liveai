@@ -118,3 +118,11 @@ NativeAudio 在 1× 下初始化/开始播放，再由独立 HandlerThread 应�
 新增 setPlayback 原生桥和 playbackSettingsVersion，参数单独持久化，CallOptions 在启动时合并。configureCallSettings 同步覆盖两项播放偏好，避免旧快速设置覆盖后来保存的完整配置。网页滑块 input 事件不等松手/change；支持新桥时直接发送播放参数，旧桥仍兼容完整设置。面板显示设备回读倍速及真实失败原因。
 
 AUDIO_PERMISSION/AUDIO_MODE/AUDIO_FOCUS/AUDIO_INPUT_INIT/AUDIO_OUTPUT_INIT/AUDIO_LISTENERS/AUDIO_OUTPUT_START 分别标记启动阶段，不输出原始异常、密钥或连接头。服务端连接初始化失败不再伪装成权限错误。官方约定：[AudioTrack.setPlaybackParams](https://developer.android.com/reference/android/media/AudioTrack#setPlaybackParams(android.media.PlaybackParams))。
+
+## 软件变速与拍照（3.7.0 / code12）
+
+Sonic Java 流式引擎在原始 PCM 与 AudioTrack 之间运行，固定输出采样率 48kHz/mono/16-bit，pitch=rate=1，仅改变 tempo/speed。不调用 AudioTrack.getPlaybackParams 或 setPlaybackParams，绕开设备明确拒绝倍速的路径。每次输入最多 20ms，缓存跨音频块保留；仅本轮结束时 flush，打断丢弃未播放的处理尾部并开始独立下一轮。硬件队列保持有界，滑动更新在随后处理块采用，不丢已排队语音。
+
+PlaybackLedger 记录渲染帧→原始媒体帧分段映射，完成回执延后到处理批次实际播放末端。慢速、快速、途中换速和打断均使用原始媒体毫秒；写入、DSP 处理完或服务端 audio.done 都不能提前当作实际播放完。新引擎版本由 softwarePlaybackVersion 标记，旧设备引擎失败状态显示明确升级动作。
+
+视觉拍照使用当前 HTTPS WebView 的 getUserMedia(video only) 和现有 WebChromeClient 相机权限，页面内预览/快门/切换镜头/取消；JPEG 通过现有文件识别通道提交。没有新增存储权限、FileProvider、照片历史或服务器中转。相机正在被其他应用/实时相机占用时给真实失败原因，不擅自结束原生通话。手机相机与蓝牙声学效果仍需真机确认。

@@ -1,10 +1,14 @@
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import {Sparkles,LoaderCircle,ArrowUpRight,Download,Copy,Image as ImageIcon,Plus,ScanEye,Upload,RefreshCw,ShieldCheck,LockKeyhole,AudioLines,Volume2} from "lucide-react";
+import {Sparkles,LoaderCircle,ArrowUpRight,Download,Copy,Image as ImageIcon,Plus,ScanEye,Upload,RefreshCw,ShieldCheck,LockKeyhole,AudioLines,Volume2,Camera} from "lucide-react";
 import {api,post,read,save} from "./workspace.js";
+import CameraCapture from './CameraCapture.jsx';
 import PaidTools from "./PaidTools.jsx";
 import {nativeTools,getTools,subscribeTools} from "./native-tools.js";
 export {default as ImageStudio} from "./ImageStudio.jsx";
-export function VisionStudio({ onError }) {
+export function VisionStudio({ onError,active=true }) {
+  const fileInput=useRef(null),[cameraOpen,setCameraOpen]=useState(false);
+  useEffect(()=>{if(!active)setCameraOpen(false)},[active]);
+  function chooseFile(f){if(!f)return;if(f.size>20*1024*1024){onError("图片不能超过 20 MB。");return;}onError("");setFile(f);setResult("");}
   const [file, setFile] = useState(null),
     [url, setUrl] = useState(""),
     [prompt, setPrompt] = useState(
@@ -45,12 +49,14 @@ export function VisionStudio({ onError }) {
   }
   return (
     <>
+      {cameraOpen&&active&&<CameraCapture onCapture={chooseFile} onClose={()=>setCameraOpen(false)} onError={onError}/>}
       <div className="studio-layout">
         <form className="studio-form" onSubmit={submit}>
           <div className="studio-title">
             <ScanEye size={20} />
             <h2>理解一张图片</h2>
           </div>
+          <div className="vision-sources"><button type="button" className="button secondary" disabled={busy} onClick={()=>{onError('');setCameraOpen(true)}}><Camera size={18}/>拍照</button><button type="button" className="button secondary" disabled={busy} onClick={()=>fileInput.current?.click()}><ImageIcon size={18}/>从相册选择</button></div>
           <label className="upload-area" htmlFor="vision-file">
             {url ? (
               <img src={url} alt="待分析图片" />
@@ -62,18 +68,13 @@ export function VisionStudio({ onError }) {
               </>
             )}
             <input
+              ref={fileInput}
+              disabled={busy}
+              aria-label="选择一张图片"
               id="vision-file"
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f?.size > 20 * 1024 * 1024) {
-                  onError("图片不能超过 20 MB。");
-                  e.target.value = "";
-                  return;
-                }
-                setFile(f);
-              }}
+              onChange={e=>{chooseFile(e.target.files?.[0]);e.target.value=''}}
             />
           </label>
           <label htmlFor="vision-prompt">

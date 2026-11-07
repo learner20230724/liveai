@@ -20,6 +20,7 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: node scripts/check-parallel-tools.mjs
       - run: node scripts/check-live-upload.mjs
+      - run: node scripts/check-camera-capture.mjs
       - run: node scripts/check-audio-inputs.mjs
       - run: node scripts/check-call-settings.mjs
       - run: node scripts/check-conversation.mjs

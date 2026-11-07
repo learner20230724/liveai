@@ -19,7 +19,7 @@ final class NativeAudio implements CallAudio {
     private final Context context;private final AudioManager manager;private final Listener listener;private final Handler handler=new Handler(Looper.getMainLooper());
     private AudioRecord recorder;private AudioTrack track;private AudioFocusRequest focusRequest;private AcousticEchoCanceler echo;private NoiseSuppressor noise;
     private final BlockingQueue<Item> queue=new LinkedBlockingQueue<>(512);private final PlaybackLedger ledger=new PlaybackLedger();private final Object outputLock=new Object();
-    private final PlaybackControl playbackControl=new PlaybackControl();private HandlerThread controlsThread;private Handler controls;private long outputWritten;private int queuedFrameLimit=4800;private final Runnable applyPlayback=this::applyPlayback;private volatile boolean running,muted,focused=true;private volatile String preference="auto";private volatile int epoch;private final AtomicLong queuedBytes=new AtomicLong();
+    private volatile float softwareRate=1;private final PlaybackControl playbackControl=new PlaybackControl();private HandlerThread controlsThread;private Handler controls;private long outputWritten;private int queuedFrameLimit=4800;private final Runnable applyPlayback=this::applyPlayback;private volatile boolean running,muted,focused=true;private volatile String preference="auto";private volatile int epoch;private final AtomicLong queuedBytes=new AtomicLong();
     private volatile String selectedInput="",routeFailure="";private volatile AudioInputs.Plan inputPlan;private volatile long routeStarted;private volatile int inputEpoch;private volatile boolean inputConfirmed;private volatile float inputLevel;
     private int preferredInputId=-1,routeAttempt;private long levelAt;private android.media.AudioManager.OnCommunicationDeviceChangedListener communicationChanged;
     private long lastHead,headWrap;private Thread capture,playback,monitor;
@@ -59,14 +59,36 @@ final class NativeAudio implements CallAudio {
             if(!inputConfirmed){Arrays.fill(frame,(byte)0);inputLevel=0;}else{long sum=0;for(int i=0;i<frame.length;i+=2){int v=(short)((frame[i]&255)|(frame[i+1]<<8));sum+=(long)v*v;}float level=Math.min(1,(float)Math.sqrt((double)sum/(frame.length/2))/6000);long now=SystemClock.elapsedRealtime();inputLevel=now-levelAt>350?level:Math.max(inputLevel,level);if(now-levelAt>350)levelAt=now;}
             listener.microphone(frame.clone());}
     }}catch(Exception e){if(running)listener.error("麦克风读取失败，请检查设备权限和音频占用");}finally{try{recorder.stop();}catch(Exception ignored){}}}
-    private void playbackLoop(){android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);String previous="";while(running){try{Item item=queue.poll(200,TimeUnit.MILLISECONDS);if(item==null)continue;queuedBytes.addAndGet(-item.bytes.length);
-        while(running&&!item.context.cancelled&&!previous.isEmpty()&&!previous.equals(item.context.turnKey())&&ledger.pending(previous))Thread.sleep(5);
-        int offset=0;int generation=epoch;while(running&&!item.context.cancelled&&offset<item.bytes.length){if(!focused){Thread.sleep(10);continue;}int written;
-            synchronized(outputLock){if(generation!=epoch)break;long queued=Math.max(0,outputWritten-head());int size=(int)Math.min(Math.min(960,item.bytes.length-offset),Math.max(0,queuedFrameLimit-queued)*2);written=size==0?0:track.write(item.bytes,offset,size,AudioTrack.WRITE_NON_BLOCKING);if(written>0)outputWritten+=written/2;if(written>0)ledger.accepted(item.context,written/2);}
-            if(written<0)throw new IllegalStateException("播放设备已断开");if(written==0)Thread.sleep(5);else offset+=written;
+    private static final class MediaPart {final PlaybackLedger.Chunk chunk;int frames;MediaPart(PlaybackLedger.Chunk chunk,int frames){this.chunk=chunk;this.frames=frames;}}
+    private static final class RenderPart {final PlaybackLedger.Chunk chunk;final int media,start,end;RenderPart(PlaybackLedger.Chunk c,int media,int start,int end){this.chunk=c;this.media=media;this.start=start;this.end=end;}}
+    private boolean writeTempo(PcmTempo.Batch batch,ArrayDeque<MediaPart> pending,int generation)throws InterruptedException{
+        if(batch.pcm.length==0)return true;
+        if(batch.mediaFrames<=0)throw new IllegalStateException("Missing media mapping");
+        List<RenderPart> parts=new ArrayList<>();Set<PlaybackLedger.Chunk> chunks=new LinkedHashSet<>();int left=batch.mediaFrames,consumed=0,outputFrames=batch.pcm.length/2;
+        while(left>0){MediaPart source=pending.peek();if(source==null)throw new IllegalStateException("PCM accounting mismatch");int take=Math.min(left,source.frames);int start=(int)((long)consumed*outputFrames/batch.mediaFrames);consumed+=take;int end=(int)((long)consumed*outputFrames/batch.mediaFrames);parts.add(new RenderPart(source.chunk,take,start,end));chunks.add(source.chunk);source.frames-=take;left-=take;if(source.frames==0)pending.remove();}
+        for(RenderPart part:parts){int count=part.end-part.start,offset=0;
+            while(offset<count*2){if(!running||generation!=epoch||part.chunk.cancelled)return false;if(!focused){Thread.sleep(10);continue;}int written;
+                synchronized(outputLock){if(generation!=epoch)return false;long queued=Math.max(0,outputWritten-head());int size=(int)Math.min(Math.min(960,count*2-offset),Math.max(0,queuedFrameLimit-queued)*2);written=size==0?0:track.write(batch.pcm,part.start*2+offset,size,AudioTrack.WRITE_NON_BLOCKING);if(written>0){if((written&1)!=0)throw new IllegalStateException("Invalid PCM write");int before=offset/2,after=(offset+written)/2;int media=(int)((long)part.media*after/count-(long)part.media*before/count);outputWritten+=written/2;ledger.accepted(part.chunk,written/2,media);}}
+                if(written<0)throw new IllegalStateException("Playback device disconnected");if(written==0)Thread.sleep(5);else offset+=written;
+            }
         }
-        if(offset==item.bytes.length&&!item.context.cancelled){ledger.written(item.context);previous=item.context.turnKey();}
-    }catch(InterruptedException ignored){break;}catch(Exception e){if(running)listener.error("语音播放失败，请检查耳机连接");break;}}}
+        synchronized(outputLock){if(generation!=epoch)return false;for(RenderPart part:parts)if(part.end==part.start)ledger.accepted(part.chunk,0,part.media);ledger.finishBatch(chunks);}return true;
+    }
+    private void playbackLoop(){android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);String key="";PcmTempo tempo=null;ArrayDeque<MediaPart> pending=new ArrayDeque<>();int generation=epoch;
+        while(running){try{
+            if(generation!=epoch){tempo=null;pending.clear();key="";generation=epoch;}
+            Item item=queue.poll(20,TimeUnit.MILLISECONDS);
+            if(item==null){if(tempo!=null&&ledger.turnDone(key)){writeTempo(tempo.finish(softwareRate),pending,generation);tempo=null;}continue;}
+            queuedBytes.addAndGet(-item.bytes.length);if(item.context.cancelled)continue;String next=item.context.turnKey();
+            if(!next.equals(key)){
+                if(tempo!=null)writeTempo(tempo.finish(softwareRate),pending,generation);
+                while(running&&!item.context.cancelled&&!key.isEmpty()&&ledger.pending(key)&&generation==epoch)Thread.sleep(5);
+                if(!running)break;if(item.context.cancelled)continue;if(generation!=epoch){pending.clear();generation=epoch;}key=next;tempo=new PcmTempo();
+            }else if(tempo==null)tempo=new PcmTempo();
+            if(item.bytes.length==0){synchronized(outputLock){ledger.accepted(item.context,0,0);ledger.finishBatch(Collections.singleton(item.context));}continue;}
+            for(int offset=0;offset<item.bytes.length&&running&&!item.context.cancelled&&generation==epoch;){int count=Math.min(1920,item.bytes.length-offset);pending.add(new MediaPart(item.context,count/2));PcmTempo.Batch batch=tempo.push(item.bytes,offset,count,softwareRate);offset+=count;if(!writeTempo(batch,pending,generation))break;}
+        }catch(InterruptedException interrupted){break;}catch(Exception failure){if(running)listener.error("语音软件变速或播放失败，请重新开始通话");break;}}
+    }
     private void monitorLoop(){while(running){try{List<PlaybackLedger.Ack> acks; synchronized(outputLock){acks=ledger.advance(head());}for(PlaybackLedger.Ack ack:acks)listener.acknowledge(ack);Thread.sleep(5);}catch(InterruptedException e){break;}catch(Exception ignored){}}}
     private long head(){long now=track.getPlaybackHeadPosition()&0xffffffffL;if(now<lastHead)headWrap+=0x100000000L;lastHead=now;return headWrap+now;}
     public void play(byte[] bytes,JSONObject data){if(!running||bytes.length%2!=0)return;if(queuedBytes.get()+bytes.length>4*1024*1024){listener.error("语音播放积压过多，请重新开始通话");return;}
@@ -81,8 +103,8 @@ final class NativeAudio implements CallAudio {
     private void startPlaybackControls(){controlsThread=new HandlerThread("liveai-playback-settings");controlsThread.start();controls=new Handler(controlsThread.getLooper());schedulePlayback();}
     private void schedulePlayback(){Handler control=controls;if(control!=null&&running){control.removeCallbacks(applyPlayback);control.post(applyPlayback);}}
     private void applyPlayback(){if(!running||track==null)return;synchronized(outputLock){if(!running)return;playbackControl.apply(new PlaybackControl.Output(){
-        public void speed(float value){track.setPlaybackParams(new PlaybackParams().allowDefaults().setSpeed(value).setPitch(1).setAudioFallbackMode(PlaybackParams.AUDIO_FALLBACK_MODE_FAIL));}
-        public float speed(){return track.getPlaybackParams().allowDefaults().getSpeed();}
+        public void speed(float value){softwareRate=PcmTempo.rate(value);}
+        public float speed(){return softwareRate;}
         public void volume(float value){if(track.setVolume(value)!=AudioTrack.SUCCESS)throw new IllegalStateException("volume");}
         public void pause(){track.pause();}
     },focused);}listener.playbackChanged();}
