@@ -2430,3 +2430,5 @@ h1 {
 .call-settings-fields .settings-check{flex-direction:row;align-items:center}.settings-check input[type=checkbox]{width:17px;height:17px;accent-color:#21694f}.simple-sheet .call-settings-fields label{margin:0}.mobile-call-page>.model-events{width:100%;margin:0 0 16px}
 
 .settings-panel{position:relative}.settings-panel>.icon-button{position:absolute;right:16px;top:16px}
+
+.playback-confirmation{grid-column:1/-1;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px;color:#496c53}.playback-confirmation span{color:#a26949}

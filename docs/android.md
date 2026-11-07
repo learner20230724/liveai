@@ -108,3 +108,13 @@ Android 官方接口：[AudioRecord](https://developer.android.com/reference/and
 「手机直连 MOSS」右侧是常驻选择麦克风列表和刷新按钮；不再需要先打开音频面板。麦克风和播放选择中均无自动/优先耳机项。未选具体设备（含旧自动偏好）时，网页与原生入口均要求先选择；设备断开保留原偏好但从当前设备列表移除，不偷偷切换到手机。无原生枚举接口的旧外壳直接显示 APK 更新入口。
 
 升级原生外壳时只重置 OTA active/healthy/blocked 网页标记一次，优先使用本次新内置页面。下一次同壳冷启动不重置；在线更新版本不得低于内置版本。本地 origin、密码、通话记录和选择偏好不变。该处理修复“新 APK 仍可能加载旧缓存页面”的交付问题；没有声称观察过用户手机的缓存状态。
+
+## 播放启动隔离与即时倍速（3.6.0 / code11）
+
+NativeAudio 在 1× 下初始化/开始播放，再由独立 HandlerThread 应用倍速与音量，使用 AUDIO_FALLBACK_MODE_FAIL 防止系统静默丢弃/静音替代。PlaybackControl 比较请求与 AudioTrack.getPlaybackParams 回读值；不支持时保留已知实际参数并显示失败，不终止录音/连接。硬件参数调用不持有请求状态锁，避免慢调用阻塞后续滑动或把过期结果当最新确认。
+
+缓冲容量至少为 getMinBufferSize 的 3 倍（最大速度 2×），新系统的启动阈值降到最多 20ms，硬件队列限制约 100ms，写入每块最多 10ms。旧 Android 无阈值接口时允许达到其启动所需缓冲量。Bluetooth/输出路由改变后重新应用并回读参数；焦点暂停仍保留。所有播放回执继续按 AudioTrack 采样播放头计数。
+
+新增 setPlayback 原生桥和 playbackSettingsVersion，参数单独持久化，CallOptions 在启动时合并。configureCallSettings 同步覆盖两项播放偏好，避免旧快速设置覆盖后来保存的完整配置。网页滑块 input 事件不等松手/change；支持新桥时直接发送播放参数，旧桥仍兼容完整设置。面板显示设备回读倍速及真实失败原因。
+
+AUDIO_PERMISSION/AUDIO_MODE/AUDIO_FOCUS/AUDIO_INPUT_INIT/AUDIO_OUTPUT_INIT/AUDIO_LISTENERS/AUDIO_OUTPUT_START 分别标记启动阶段，不输出原始异常、密钥或连接头。服务端连接初始化失败不再伪装成权限错误。官方约定：[AudioTrack.setPlaybackParams](https://developer.android.com/reference/android/media/AudioTrack#setPlaybackParams(android.media.PlaybackParams))。

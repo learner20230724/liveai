@@ -10,6 +10,7 @@ interface CallAudio {
     void route(String value);
     JSONArray routes();
     default void settings(float rate,float volume) {}
+    default JSONObject playbackState(){return new JSONObject();}
     default void input(String value) {}
     default void refreshInputs() {}
     default JSONObject inputs(){return new JSONObject();}
